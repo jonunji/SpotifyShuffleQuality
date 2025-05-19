@@ -1,0 +1,16 @@
+Each person can pick a playlist
+Shuffles like 100 times
+
+For each song:
+- Each song ordered by how many times it came up
+- People can click on a song to see more info
+	- How many times a specific arist came up
+	- How many times that album came up
+	- Whatever else
+	- genre?
+
+Should be easy to use
+
+Smart vs normal vs dumb
+- Show them all side by side
+- Show commonalities between them all

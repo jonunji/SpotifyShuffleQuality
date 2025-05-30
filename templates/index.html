@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spotify Queue Insights</title>
+    <title>Spotify Shuffle Analyzer</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -534,20 +534,159 @@
                 font-size: 0.9em;
             }
         }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            /* Hidden by default */
+            position: fixed;
+            /* Stay in place */
+            z-index: 100;
+            /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%;
+            /* Full width */
+            height: 100%;
+            /* Full height */
+            overflow: auto;
+            /* Enable scroll if needed */
+            background-color: rgba(0, 0, 0, 0.7);
+            /* Black w/ opacity */
+            backdrop-filter: blur(5px);
+            /* Optional: adds a blur effect */
+            -webkit-backdrop-filter: blur(5px);
+            /* Safari support */
+            padding-top: 60px;
+        }
+
+        .modal-content {
+            background-color: var(--card-background);
+            margin: 5% auto;
+            /* 5% from the top and centered */
+            padding: 30px;
+            border-radius: 12px;
+            width: 80%;
+            /* Could be more or less, depending on screen size */
+            max-width: 600px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            position: relative;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-content h2 {
+            color: var(--primary-green);
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .modal-content p {
+            color: var(--text-color-primary);
+            margin-bottom: 15px;
+            line-height: 1.6;
+            font-size: 1.05em;
+        }
+
+        .modal-content ul {
+            list-style: disc inside;
+            padding-left: 20px;
+            margin-bottom: 20px;
+            color: var(--text-color-secondary);
+        }
+
+        .modal-content ul li {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .modal-content ul li strong {
+            color: var(--primary-green);
+        }
+
+        .modal .btn {
+            display: block;
+            width: fit-content;
+            margin: 20px auto 0 auto;
+            padding: 12px 30px;
+        }
+
+        .close-button {
+            color: var(--text-color-secondary);
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 15px;
+            right: 25px;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: var(--primary-green);
+            text-decoration: none;
+        }
+
+        /* Responsive adjustments for modal */
+        @media (max-width: 768px) {
+            .modal-content {
+                width: 90%;
+                margin: 20px auto;
+                padding: 20px;
+            }
+
+            .modal-content h2 {
+                font-size: 1.5em;
+            }
+
+            .modal-content p,
+            .modal-content ul li {
+                font-size: 0.95em;
+            }
+        }
     </style>
 </head>
 
 <body>
+    <div id="instructionModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Welcome to Spotify Shuffle Analyzer!</h2>
+            <p>The tool works by constantly reshuffling your active queue and recording the data.</p>
+            <p>To get the most accurate information, please follow these instructions:</p>
+            <ul>
+                <li><strong>Keep Spotify playing:</strong> Ensure Spotify is actively playing music on a connected
+                    device. This is needed for continuous calls to Spotify's servers.</li>
+                <li><strong>Clear Your Queue:</strong> Checks are made to determine if the list has been shuffled. Songs
+                    in the queue do not change, so this distrupts that check.</li>
+                <li><strong>Play inside a playlist/album:</strong> To see statistics about a specific playlist or album
+                    you're interested in, make sure to play music from where you're interested.</li>
+            </ul>
+            <p>We'll then analyze how songs are added to your queue as you listen!</p>
+            <button id="modal-understood-button" class="btn">Understood!</button>
+        </div>
+    </div>
     <div class="main-wrapper">
-        <h1>Spotify Queue Insights</h1>
+        <h1>Spotify Shuffle Analyzer</h1>
 
         <div class="nav-links">
-            <a href="/" class="nav-link">Home</a>
-            <a href="/reset" class="nav-link">Reset Data</a>
             {% if logged_in %}
+            <a href="/reset" class="nav-link">Reset Data</a>
+            <a href="#" id="help-button" class="nav-link">Help</a> {# Add this line for the Help button #}
             <a href="/logout" class="nav-link">Logout</a> {# Assuming you add a /logout route in Flask #}
-            {% else %}
-            <a href="/login" class="nav-link">Login with Spotify</a>
             {% endif %}
         </div>
 
@@ -646,6 +785,11 @@
         const contextOwnerTotal = document.getElementById('context-owner-total');
         const noContextMessage = document.getElementById('no-context-message');
 
+        // Modal elements
+        const instructionModal = document.getElementById('instructionModal');
+        const closeButton = document.querySelector('.close-button');
+        const modalUnderstoodButton = document.getElementById('modal-understood-button');
+        const helpButton = document.getElementById('help-button'); // Get the new help button
 
         function renderTracks(tracks) {
             trackListContainer.innerHTML = '';
@@ -1063,6 +1207,40 @@
         updatePlaybackInfoDisplay({ device_name: 'N/A', is_playing: false, item_name: 'N/A', item_artist: 'N/A' });
         updateQueueAndOverallStats({}); // Initialize with zeros
         renderTracks([]); // Start with empty list until data loads or reset is triggered
+
+        // Modal Logic
+        const hasSeenInstructions = sessionStorage.getItem('hasSeenInstructions');
+        if (!hasSeenInstructions) {
+            instructionModal.style.display = 'block';
+        }
+
+        closeButton.addEventListener('click', () => {
+            instructionModal.style.display = 'none';
+            sessionStorage.setItem('hasSeenInstructions', 'true');
+        });
+
+        modalUnderstoodButton.addEventListener('click', () => {
+            instructionModal.style.display = 'none';
+            sessionStorage.setItem('hasSeenInstructions', 'true');
+        });
+
+        // Close the modal if the user clicks outside of it
+        window.addEventListener('click', (event) => {
+            if (event.target == instructionModal) {
+                instructionModal.style.display = 'none';
+                sessionStorage.setItem('hasSeenInstructions', 'true');
+            }
+        });
+
+        // Event Listener for the new Help button
+        if (helpButton) { // Ensure the button exists before adding listener
+            helpButton.addEventListener('click', (event) => {
+                event.preventDefault(); // Prevent default link behavior (e.g., navigating to #)
+                instructionModal.style.display = 'block'; // Show the modal
+                // You might want to reset 'hasSeenInstructions' here if you want it to always pop up on subsequent visits after hitting help
+                // sessionStorage.removeItem('hasSeenInstructions');
+            });
+        }
         });
 
         {% endif %}

@@ -14,3 +14,15 @@ Should be easy to use
 Smart vs normal vs dumb
 - Show them all side by side
 - Show commonalities between them all
+
+
+Remove the forced repeat thing. should detect when a song changes and handle it appropriatly.
+- in the queue function
+	- first thing is just checking if the current song is the same as the previous
+	- if not, just reupdate everything.
+
+when hitting reset while playing, it doesnt actually reset the data
+- probably because its midway through that queue_data func, so it still has the existsing data,
+- need to exit early, or wait till it's done to reset the data
+
+need to divide things by playing/album and also have some master list.

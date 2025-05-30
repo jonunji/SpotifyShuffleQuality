@@ -154,8 +154,6 @@ def reset_route():
 
 @app.route('/')
 def index():
-    _perform_reset() # Reset data and Spotify state on every page load/refresh
-
     token_info = session.get('token_info')
     logged_in = token_info is not None and not SpotifyOAuth(scope=SCOPE).is_token_expired(token_info)
 
@@ -179,6 +177,14 @@ def login():
     sp_oauth = SpotifyOAuth(scope=SCOPE)
     auth_url = sp_oauth.get_authorize_url()
     return redirect(auth_url)
+
+@app.route('/logout')
+def logout():
+    session.clear()  # Clear all session data, including Spotify tokens
+    _perform_reset()
+
+    # Redirect to the home page after logout
+    return redirect('/')
 
 @app.route('/callback')
 def callback():

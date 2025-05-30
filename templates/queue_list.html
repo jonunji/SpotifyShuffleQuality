@@ -1,0 +1,32 @@
+{% if queue and queue|length > 0 %}
+<ul class="track-list">
+    {% for track in queue %}
+    <li class="track-item">
+        {% if track.album and track.album.images and track.album.images|length > 0 %}
+        <img class="track-image" src="{{ track.album.images[0].url }}" alt="{{ track.name }} album art">
+        {% else %}
+        <div class="track-image"></div>
+        {% endif %}
+
+        <div class="track-info">
+            <div class="track-name">{{ track.name }}</div>
+            <div class="track-artist">
+                {% if track.artists and track.artists|length > 0 %}
+                    {% for artist in track.artists %}
+                        {{ artist.name }}{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                {% else %}
+                    Unknown Artist
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="track-frequency">{{ track.frequency }}</div>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<div class="no-tracks">
+    <p>No track data collected yet. Make sure tracking is enabled and you're using Spotify.</p>
+</div>
+{% endif %}

@@ -1,1 +1,1072 @@
-Hello World
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Queue Insights</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-green: #1ED760;
+            /* Slightly brighter Spotify green */
+            --dark-background: #121212;
+            --card-background: #181818;
+            --light-card-background: #282828;
+            --text-color-primary: #FFFFFF;
+            --text-color-secondary: #B3B3B3;
+            --border-color: #333333;
+            --accent-blue: #007bff;
+            /* For initializing state */
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--dark-background);
+            color: var(--text-color-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .main-wrapper {
+            width: 100%;
+            max-width: 900px;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h1,
+        h2 {
+            color: var(--primary-green);
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .container {
+            background-color: var(--card-background);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .container:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn {
+            background-color: var(--primary-green);
+            color: var(--dark-background);
+            /* Dark text on green for contrast */
+            border: none;
+            padding: 12px 25px;
+            border-radius: 30px;
+            font-size: 1.05em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            margin: 15px 0;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:hover {
+            background-color: #1ED760;
+            /* Keep it similar on hover */
+            transform: translateY(-1px);
+        }
+
+        .btn-inactive {
+            background-color: #535353;
+            color: var(--text-color-primary);
+        }
+
+        .btn-inactive:hover {
+            background-color: #636363;
+        }
+
+        .btn-initializing {
+            background-color: var(--accent-blue);
+            cursor: default;
+            opacity: 0.9;
+        }
+
+        .btn-initializing:hover {
+            background-color: var(--accent-blue);
+            transform: translateY(0);
+        }
+
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.05em;
+            line-height: 1.5;
+        }
+
+        .status-active {
+            background-color: rgba(30, 215, 96, 0.15);
+            /* Primary green with transparency */
+            border-left: 5px solid var(--primary-green);
+            color: #C0FFEE;
+            /* Lighter green for text */
+        }
+
+        .status-inactive {
+            background-color: rgba(220, 220, 220, 0.08);
+            border-left: 5px solid var(--text-color-secondary);
+            color: var(--text-color-secondary);
+        }
+
+        #queue-data {
+            margin-top: 20px;
+        }
+
+        .track-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .track-item {
+            display: flex;
+            flex-direction: column;
+            /* Allows dropdown to be below main info */
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s ease;
+            cursor: pointer;
+        }
+
+        .track-item:last-child {
+            border-bottom: none;
+        }
+
+        .track-item.active {
+            background-color: var(--light-card-background);
+            border-left: 3px solid var(--primary-green);
+            padding-left: 12px;
+            /* Adjust padding for border */
+        }
+
+        .track-item:hover:not(.active) {
+            background-color: #202020;
+        }
+
+        .track-main-info {
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+
+        .track-image {
+            width: 70px;
+            height: 70px;
+            border-radius: 8px;
+            margin-right: 20px;
+            background-color: #333;
+            /* Placeholder color */
+            object-fit: cover;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .track-info {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .track-name {
+            font-weight: 600;
+            font-size: 1.15em;
+            margin-bottom: 5px;
+            color: var(--text-color-primary);
+        }
+
+        .track-artist {
+            color: var(--text-color-secondary);
+            font-size: 0.95em;
+        }
+
+        .track-frequency {
+            background-color: var(--primary-green);
+            color: var(--dark-background);
+            border-radius: 15px;
+            padding: 6px 12px;
+            font-weight: 700;
+            font-size: 1.1em;
+            min-width: 30px;
+            text-align: center;
+            margin-left: 20px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        @keyframes dots {
+
+            0%,
+            20% {
+                content: '.';
+            }
+
+            40% {
+                content: '..';
+            }
+
+            60% {
+                content: '...';
+            }
+
+            80%,
+            100% {
+                content: '';
+            }
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+            justify-content: center;
+        }
+
+        .nav-link {
+            color: var(--text-color-secondary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--primary-green);
+        }
+
+        .no-tracks {
+            text-align: center;
+            color: var(--text-color-secondary);
+            padding: 50px 0;
+            font-size: 1.1em;
+            background-color: var(--light-card-background);
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stat-box {
+            background-color: var(--light-card-background);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .stat-box h3 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: var(--primary-green);
+            font-size: 1.2em;
+            font-weight: 700;
+        }
+
+        .stat-box p {
+            margin: 6px 0;
+            font-size: 0.95em;
+            color: var(--text-color-secondary);
+            line-height: 1.4;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--text-color-primary);
+            font-size: 1em;
+        }
+
+        .context-display {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-top: 15px;
+            background-color: #202020;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .context-image {
+            width: 90px;
+            height: 90px;
+            border-radius: 8px;
+            object-fit: cover;
+            background-color: #555;
+            flex-shrink: 0;
+        }
+
+        .context-details {
+            flex-grow: 1;
+        }
+
+        .context-details h3 {
+            margin: 0;
+            color: var(--primary-green);
+            font-size: 1.3em;
+            font-weight: 700;
+        }
+
+        .context-details p {
+            margin: 5px 0;
+            color: var(--text-color-secondary);
+            font-size: 1em;
+        }
+
+        .track-details-dropdown {
+            background-color: #212121;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 15px;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
+            display: none;
+            overflow: hidden;
+            /* For animation */
+            animation: slideDown 0.3s ease-out forwards;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-15px);
+                max-height: 0;
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+                max-height: 500px;
+                /* Adjust as needed */
+            }
+        }
+
+        /* For closing, if needed. But direct display: none is often fine for toggle. */
+        /* @keyframes slideUp {
+            from { opacity: 1; transform: translateY(0); max-height: 500px; }
+            to { opacity: 0; transform: translateY(-15px); max-height: 0; }
+        } */
+
+
+        .track-details-dropdown h3 {
+            margin-top: 0;
+            color: var(--primary-green);
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .track-details-dropdown h3 img {
+            width: 50px;
+            height: 50px;
+            border-radius: 6px;
+            object-fit: cover;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .track-details-content .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 1px dashed #3e3e3e;
+            font-size: 0.95em;
+        }
+
+        .track-details-content .stat-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .track-details-content .stat-label {
+            font-weight: 600;
+            color: var(--text-color-secondary);
+        }
+
+        .track-details-content .stat-value {
+            color: var(--text-color-primary);
+            text-align: right;
+            font-weight: 500;
+        }
+
+        .track-details-content .stat-list {
+            list-style-type: none;
+            /* No bullets */
+            padding-left: 0;
+            /* Remove default padding */
+            margin-top: 10px;
+            margin-bottom: 0;
+            color: var(--text-color-secondary);
+            max-height: 150px;
+            /* Limit height */
+            overflow-y: auto;
+            /* Scroll if too many items */
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: #2b2b2b;
+        }
+
+        .track-details-content .stat-list li {
+            padding: 5px 10px;
+            font-size: 0.9em;
+            border-bottom: 1px solid #3a3a3a;
+        }
+
+        .track-details-content .stat-list li:last-child {
+            border-bottom: none;
+        }
+
+        .track-details-content .stat-list li:hover {
+            background-color: #383838;
+        }
+
+        /* Flash animation for stat-box */
+        @keyframes flashEffect {
+            0% {
+                box-shadow: 0 0 0px 0px rgba(30, 215, 96, 0.7);
+            }
+
+            50% {
+                box-shadow: 0 0 15px 5px rgba(30, 215, 96, 0.7);
+            }
+
+            100% {
+                box-shadow: 0 0 0px 0px rgba(30, 215, 96, 0);
+            }
+        }
+
+        .stat-box.flash {
+            animation: flashEffect 0.5s ease-out;
+            /* Apply animation */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+
+            .main-wrapper {
+                padding: 15px;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            .btn {
+                width: 100%;
+                box-sizing: border-box;
+                margin: 10px 0;
+            }
+
+            .nav-links {
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                /* Stack stats boxes on small screens */
+            }
+
+            .track-item {
+                padding: 10px;
+            }
+
+            .track-image {
+                width: 50px;
+                height: 50px;
+                margin-right: 15px;
+            }
+
+            .track-name {
+                font-size: 1em;
+            }
+
+            .track-artist {
+                font-size: 0.85em;
+            }
+
+            .track-frequency {
+                font-size: 1em;
+                padding: 4px 8px;
+            }
+
+            .context-image {
+                width: 70px;
+                height: 70px;
+            }
+
+            .context-details h3 {
+                font-size: 1.1em;
+            }
+
+            .context-details p {
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-wrapper">
+        <h1>Spotify Queue Insights</h1>
+
+        <div class="nav-links">
+            <a href="/" class="nav-link">Home</a>
+            <a href="/reset" class="nav-link">Reset Data</a>
+            {% if logged_in %}
+            <a href="/logout" class="nav-link">Logout</a> {# Assuming you add a /logout route in Flask #}
+            {% else %}
+            <a href="/login" class="nav-link">Login with Spotify</a>
+            {% endif %}
+        </div>
+
+        {% if logged_in %}
+        <div id="status-container" class="status {% if running %}status-active{% else %}status-inactive{% endif %}">
+            <p id="status-text">
+                {% if running %}
+                Queue tracking is <strong>active</strong>. We're automatically analyzing your Spotify queue.
+                {% else %}
+                Queue tracking is <strong>inactive</strong>. Click the button below to start tracking.
+                {% endif %}
+            </p>
+        </div>
+
+        <button id="toggle-tracking" class="btn {% if not running %}btn-inactive{% endif %}">
+            {% if running %}
+            Stop Tracking
+            {% else %}
+            Start Tracking
+            {% endif %}
+        </button>
+
+        <div class="stats-grid">
+            <div class="stat-box">
+                <h3>Current Playback</h3>
+                <p>Device: <span id="playback-device" class="stat-value">N/A</span></p>
+                <p>Status: <span id="playback-status" class="stat-value">N/A</span></p>
+                <p>Song: <span id="playback-item-name" class="stat-value">N/A</span></p>
+                <p>Artist: <span id="playback-item-artist" class="stat-value">N/A</span></p>
+            </div>
+            <div id="tracking-summary-box" class="stat-box"> {# Added ID here #}
+                <h3>Tracking Summary</h3>
+                <p>Unique Tracks Tracked: <span id="total-unique-tracks" class="stat-value">0</span></p>
+                <p>Total Plays Counted: <span id="total-plays-counted" class="stat-value">0</span></p>
+            </div>
+            <div class="stat-box" style="grid-column: 1 / -1;"> {# Span full width for context #}
+                <h3>Current Context (<span id="context-type" class="stat-value">Unknown</span>)</h3>
+                <div id="context-display" class="context-display">
+                    <img id="context-image" class="context-image" src="" alt="Context Image">
+                    <div class="context-details">
+                        <h3 id="context-name">N/A</h3>
+                        <p id="context-owner-total"></p>
+                    </div>
+                </div>
+                <p id="no-context-message" style="display: none;">No active context found or playing item is not from a
+                    known context (e.g., local file, individual track).</p>
+            </div>
+        </div>
+
+        <div id="queue-data" class="container">
+            <h2>Your Most Played Tracks in Queue</h2>
+            <ul class="track-list" id="track-list-container">
+            </ul>
+            <div class="no-tracks" id="no-tracks-message" style="display: none;">
+                <p>No track data collected yet. Make sure tracking is enabled and you're using Spotify.</p>
+            </div>
+        </div>
+        {% else %}
+        <div class="container" style="text-align: center;">
+            <p>Please login with your Spotify account to start tracking your queue.</p>
+            <a href="/login" class="btn">Login with Spotify</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Only execute if logged in
+        {% if logged_in %}
+
+        let isTracking = {{ running| tojson }};
+        let continueTracking = false;
+        let isInitializing = false;
+
+        const toggleButton = document.getElementById('toggle-tracking');
+        const statusContainer = document.getElementById('status-container');
+        const statusText = document.getElementById('status-text');
+        const trackListContainer = document.getElementById('track-list-container');
+        const noTracksMessage = document.getElementById('no-tracks-message');
+
+        // Playback Info Elements
+        const playbackDevice = document.getElementById('playback-device');
+        const playbackStatus = document.getElementById('playback-status');
+        const playbackItemName = document.getElementById('playback-item-name');
+        const playbackItemArtist = document.getElementById('playback-item-artist');
+
+        const totalUniqueTracks = document.getElementById('total-unique-tracks');
+        const totalPlaysCounted = document.getElementById('total-plays-counted');
+        const trackingSummaryBox = document.getElementById('tracking-summary-box'); // Get the tracking summary box
+
+
+        // Context Info Elements
+        const contextType = document.getElementById('context-type');
+        const contextDisplay = document.getElementById('context-display');
+        const contextImage = document.getElementById('context-image');
+        const contextName = document.getElementById('context-name');
+        const contextOwnerTotal = document.getElementById('context-owner-total');
+        const noContextMessage = document.getElementById('no-context-message');
+
+
+        function renderTracks(tracks) {
+            trackListContainer.innerHTML = '';
+            if (tracks && tracks.length > 0) {
+                noTracksMessage.style.display = 'none';
+                tracks.forEach(track => {
+                    const trackItem = document.createElement('li');
+                    trackItem.classList.add('track-item');
+                    trackItem.dataset.trackId = track.id;
+
+                    const imageUrl = track.album && track.album.images && track.album.images.length > 0
+                        ? track.album.images[0].url
+                        : '';
+                    // Corrected: Join artists names as sent by main.py
+                    const artists = track.artists.map(a => a.name).join(', ') || 'Unknown Artist';
+
+                    trackItem.innerHTML = `
+                        <div class="track-main-info">
+                            ${imageUrl ? `<img class="track-image" src="${imageUrl}" alt="${track.name} album art">` : '<div class="track-image"></div>'}
+                            <div class="track-info">
+                                <div class="track-name">${track.name}</div>
+                                <div class="track-artist">${artists}</div>
+                            </div>
+                            <div class="track-frequency">${track.frequency}</div>
+                        </div>
+                        <div class="track-details-dropdown" style="display: none;">
+                            </div>
+                    `;
+                    trackListContainer.appendChild(trackItem);
+                });
+
+                trackListContainer.querySelectorAll('.track-item').forEach(item => {
+                    item.addEventListener('click', handleTrackClick);
+                });
+
+            } else {
+                noTracksMessage.style.display = 'block';
+                noTracksMessage.querySelector('p').textContent = "No track data collected yet. Make sure tracking is enabled and you're using Spotify.";
+            }
+        }
+
+        async function handleTrackClick(event) {
+            if (isTracking) {
+                alert("Please stop tracking before clicking on individual songs for stats.");
+                return;
+            }
+
+            const clickedTrackItem = event.currentTarget;
+            const trackId = clickedTrackItem.dataset.trackId;
+            const trackDetailsDropdown = clickedTrackItem.querySelector('.track-details-dropdown');
+
+            if (!trackId || !trackDetailsDropdown) {
+                console.error("No track ID or dropdown found for clicked item.");
+                return;
+            }
+
+            // Close all other open dropdowns and remove 'active' class
+            document.querySelectorAll('.track-details-dropdown').forEach(dropdown => {
+                if (dropdown !== trackDetailsDropdown && dropdown.style.display !== 'none') {
+                    dropdown.style.display = 'none';
+                    dropdown.closest('.track-item').classList.remove('active');
+                    dropdown.innerHTML = ''; // Clear content when closing
+                }
+            });
+
+            // Toggle the clicked dropdown
+            if (trackDetailsDropdown.style.display === 'none') {
+                // Open the dropdown
+                trackDetailsDropdown.style.display = 'block';
+                clickedTrackItem.classList.add('active');
+
+                // Clear and show loading state
+                trackDetailsDropdown.innerHTML = `<div style="text-align: center; color: var(--text-color-secondary); padding: 10px;">Loading stats...</div>`;
+
+                try {
+                    // Corrected: Path to track_stats endpoint is /track_stats
+                    const response = await fetch(`/track_stats/${trackId}`);
+                    const data = await response.json();
+
+                    if (data.status === 'error') {
+                        trackDetailsDropdown.innerHTML = `<div style="color: #FF6347; padding: 10px;">Error: ${data.error}</div>`;
+                        console.error("Error fetching track stats:", data.error);
+                    } else {
+                        updateIndividualTrackStats(data, trackDetailsDropdown);
+                    }
+                } catch (error) {
+                    console.error('Error fetching individual track stats:', error);
+                    trackDetailsDropdown.innerHTML = `<div style="color: #FF6347; padding: 10px;">Network error loading stats.</div>`;
+                }
+            } else {
+                // Close the dropdown
+                trackDetailsDropdown.style.display = 'none';
+                clickedTrackItem.classList.remove('active');
+                trackDetailsDropdown.innerHTML = '';
+            }
+        }
+
+        function updateIndividualTrackStats(stats, dropdownElement) {
+            // Corrected: Use stats.artists (array of objects) and join them
+            const artists = stats.artists.map(a => a.name).join(', ') || 'N/A';
+            const durationMinutes = Math.floor(stats.duration_ms / 60000);
+            const seconds = ((stats.duration_ms % 60000) / 1000).toFixed(0);
+            const formattedDuration = `${durationMinutes}:${(seconds < 10 ? '0' : '')}${seconds}`;
+            // Corrected: Use stats.artist_genres
+            const genres = stats.artist_genres && stats.artist_genres.length > 0 ? stats.artist_genres.join(', ') : 'N/A';
+
+            // Corrected: Use actual values from stats
+            const shuffleChance = stats.shuffle_chance_percent ? stats.shuffle_chance_percent.toFixed(2) : '0.00';
+            const popularity = stats.popularity || 0; // Popularity is directly available
+
+            let artistBreakdownHtml = '';
+            if (stats.songs_by_same_artists && Object.keys(stats.songs_by_same_artists).length > 0) {
+                // The structure for songs_by_same_artists in backend is already mapping artist_id to track objects
+                for (const artistId in stats.songs_by_same_artists) {
+                    // Corrected: Get artist name from the artists array of the first track in the list
+                    const artistName = stats.songs_by_same_artists[artistId][0].artists.map(a => a.name).join(', ') || 'Unknown Artist';
+                    const trackNames = stats.songs_by_same_artists[artistId].map(t => t.name).join(', ');
+                    artistBreakdownHtml += `<li><strong>${artistName}</strong>: ${stats.songs_by_same_artists[artistId].length} tracks (${trackNames})</li>`;
+                }
+                artistBreakdownHtml = `
+                    <div class="stat-row" style="flex-direction: column; align-items: flex-start;">
+                        <span class="stat-label" style="margin-bottom: 5px;">Breakdown by Artist:</span>
+                        <ul class="stat-list">${artistBreakdownHtml}</ul>
+                    </div>`;
+            } else {
+                artistBreakdownHtml = `
+                    <div class="stat-row">
+                        <span class="stat-label">Songs by These Artists:</span>
+                        <span class="stat-value">${stats.num_songs_from_same_artists}</span>
+                    </div>`;
+            }
+
+            let genreMatchHtml = '';
+            if (stats.songs_matching_genre && stats.songs_matching_genre.length > 0) {
+                genreMatchHtml = `
+                    <div class="stat-row" style="flex-direction: column; align-items: flex-start;">
+                        <span class="stat-label" style="margin-bottom: 5px;">Songs Matching Genres:</span>
+                        <ul class="stat-list">
+                            ${stats.songs_matching_genre.map(t => {
+                    // The Python backend is now filtering out the current song,
+                    // so we don't need the `if (t.id === stats.id)` check here.
+                    const artists = t.artists.map(a => a.name).join(', ');
+                    return `<li><strong>${artists}</strong>: ${t.name} (${t.frequency} plays)</li>`;
+                }).join('')}
+                        </ul>
+                    </div>`;
+            } else {
+                genreMatchHtml = `
+                    <div class="stat-row">
+                        <span class="stat-label">Songs Matching Genres:</span>
+                        <span class="stat-value">${stats.num_songs_matching_genre}</span>
+                    </div>`;
+            }
+
+            // Corrected: Use stats.album_image for image, stats.album_name for album text
+            dropdownElement.innerHTML = `
+                <div class="track-details-content">
+                    <div class="stat-row">
+                        <span class="stat-label">Plays in Queue:</span>
+                        <span class="stat-value">${stats.frequency}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Approx. Shuffle Chance:</span>
+                        <span class="stat-value">${shuffleChance}%</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Album:</span>
+                        <span class="stat-value">${stats.album_name}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Duration:</span>
+                        <span class="stat-value">${formattedDuration}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Popularity:</span>
+                        <span class="stat-value">${popularity}%</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Genres (of artists):</span>
+                        <span class="stat-value">${genres}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Total Plays by These Artists:</span>
+                        <span class="stat-value">${stats.total_plays_by_same_artists}</span>
+                    </div>
+                    ${artistBreakdownHtml}
+                    ${genreMatchHtml}
+                </div>
+            `;
+        }
+
+        function updateQueueAndOverallStats(data) {
+            totalUniqueTracks.textContent = data.total_unique_tracks || 0;
+            totalPlaysCounted.textContent = data.total_plays_counted || 0;
+
+            if (totalUniqueTracks.textContent == 0 && totalPlaysCounted.textContent == 0) {
+                return;
+            }
+
+            // Flash the tracking summary box
+            trackingSummaryBox.classList.remove('flash'); // Remove to allow re-triggering animation
+            void trackingSummaryBox.offsetWidth; // Trigger reflow
+            trackingSummaryBox.classList.add('flash');
+        }
+
+        function updatePlaybackInfoDisplay(info) {
+            playbackDevice.textContent = info.device_name || 'N/A';
+            playbackStatus.textContent = info.is_playing ? 'Playing' : 'Paused';
+            playbackItemName.textContent = info.item_name || 'N/A';
+            playbackItemArtist.textContent = info.item_artist || 'N/A';
+        }
+
+        function updateContextInfoDisplay(info) {
+            if (info && info.name && info.name !== 'N/A') {
+                noContextMessage.style.display = 'none';
+                contextDisplay.style.display = 'flex';
+
+                contextType.textContent = info.type ? info.type.charAt(0).toUpperCase() + info.type.slice(1) : 'Unknown';
+                contextName.textContent = info.name;
+
+                if (info.image_url) {
+                    contextImage.src = info.image_url;
+                    contextImage.style.display = 'block';
+                } else {
+                    contextImage.src = '';
+                    contextImage.style.display = 'none';
+                }
+
+                let ownerTotalText = '';
+                if (info.owner_name) {
+                    ownerTotalText += `By: ${info.owner_name}`;
+                }
+                if (info.total_tracks !== null && info.total_tracks !== undefined) { // Check for undefined as well
+                    ownerTotalText += `${ownerTotalText ? ' | ' : ''}Tracks: ${info.total_tracks}`;
+                }
+                contextOwnerTotal.textContent = ownerTotalText || 'N/A';
+
+            } else {
+                noContextMessage.style.display = 'block';
+                contextDisplay.style.display = 'none';
+                contextType.textContent = 'Unknown';
+                contextName.textContent = 'N/A';
+                contextOwnerTotal.textContent = '';
+                contextImage.src = '';
+            }
+        }
+
+
+        async function fetchQueueData() {
+            if (!continueTracking) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/queue_data');
+                const data = await response.json();
+
+                if (data.status === 'error') {
+                    statusText.innerHTML = `Error: <strong>${data.error}</strong>`;
+                    statusContainer.className = 'status status-inactive';
+
+                    if (data.error.includes("Token expired")) {
+                        alert('Your Spotify session has expired. Please log in again.');
+                        window.location.href = '/login';
+                        return;
+                    } else if (data.error.includes("Please start playing a song") || data.error.includes("Tracking setup incomplete") || data.error.includes("No active Spotify device found")) {
+                        stopTracking(false); // Stop tracking but don't clear data
+                    }
+                } else if (data.status === 'paused') { // Handle 'paused' status from backend
+                    statusText.innerHTML = `Queue tracking is <strong>inactive</strong>. Playback paused or no active device/song.`;
+                    statusContainer.className = 'status status-inactive';
+                    stopTracking(false); // Stop tracking but don't clear data
+                } else {
+                    renderTracks(data.queue);
+                    updateQueueAndOverallStats(data);
+                    statusText.innerHTML = 'Queue tracking is <strong>active</strong>. We\'re automatically analyzing your Spotify queue.';
+                    statusContainer.className = 'status status-active';
+                }
+
+            } catch (error) {
+                console.error('Error fetching queue data:', error);
+                statusText.innerHTML = `Network error or server unreachable: <strong>${error.message}</strong>`;
+                statusContainer.className = 'status status-inactive';
+                stopTracking(false); // Stop tracking but don't clear data
+                // Do NOT clear tracks or playback/context info here
+            } finally {
+                if (continueTracking) {
+                    setTimeout(fetchQueueData, 500); // Fetch every 3 seconds while active
+                }
+            }
+        }
+
+        async function startTracking() {
+            if (isInitializing) return;
+
+            isInitializing = true;
+            updateToggleButtonAndStatus(); // Show "Initializing..." state
+
+            try {
+                const response = await fetch('/toggle', { method: 'POST' });
+                const data = await response.json();
+
+                if (data.status === 'started') {
+                    isTracking = true;
+                    isInitializing = false;
+                    updateToggleButtonAndStatus();
+                    // Status bar only shows active state
+                    statusText.innerHTML = 'Queue tracking is <strong>active</strong>. We\'re automatically analyzing your Spotify queue.';
+                    statusContainer.className = 'status status-active';
+
+                    // Update playback and context info ONLY on successful start
+                    if (data.playback_info) {
+                        updatePlaybackInfoDisplay(data.playback_info);
+                    }
+                    if (data.context_info) {
+                        updateContextInfoDisplay(data.context_info);
+                    }
+
+                    document.querySelectorAll('.track-details-dropdown').forEach(dropdown => {
+                        dropdown.style.display = 'none';
+                        dropdown.closest('.track-item').classList.remove('active');
+                        dropdown.innerHTML = '';
+                    });
+
+                    continueTracking = true;
+                    fetchQueueData(); // Start fetching queue data in a loop
+                } else {
+                    isTracking = false;
+                    isInitializing = false;
+                    updateToggleButtonAndStatus();
+                    statusText.innerHTML = `Error starting tracking: <strong>${data.error}</strong>`;
+                    statusContainer.className = 'status status-inactive';
+                }
+            } catch (error) {
+                console.error('Error starting tracking:', error);
+                isTracking = false;
+                isInitializing = false;
+                updateToggleButtonAndStatus();
+                statusText.innerHTML = `Network error: <strong>Failed to start tracking.</strong>`;
+                statusContainer.className = 'status status-inactive';
+            }
+        }
+
+        async function stopTracking(sendToggleRequest = true) {
+            continueTracking = false;
+            isInitializing = false;
+
+            if (sendToggleRequest) {
+                try {
+                    const response = await fetch('/toggle', { method: 'POST' });
+                    const data = await response.json();
+                    if (data.status === 'stopped') {
+                        // Success - state already updated by updateToggleButtonAndStatus
+                        // Set status bar to inactive message
+                        statusText.innerHTML = 'Queue tracking is <strong>inactive</strong>. Click the button below to start tracking.';
+                        statusContainer.className = 'status status-inactive';
+                    } else {
+                        statusText.innerHTML = `Error stopping tracking cleanly: <strong>${data.error}</strong>`;
+                        statusContainer.className = 'status status-inactive';
+                    }
+                } catch (error) {
+                    console.error('Error during stopping tracking:', error);
+                    statusText.innerHTML = `Network error: <strong>Failed to stop tracking.</strong>`;
+                    statusContainer.className = 'status status-inactive';
+                }
+            } else {
+                // If not sending toggle request (e.g., stopping due to API error), just update status bar
+                statusText.innerHTML = 'Queue tracking is <strong>inactive</strong>. Playback paused or no active device/song.';
+                statusContainer.className = 'status status-inactive';
+            }
+
+            isTracking = false;
+            updateToggleButtonAndStatus();
+            // IMPORTANT: Do NOT clear playback info, context info, or queue/overall stats here.
+            // These should only be cleared on a full 'reset data'.
+        }
+
+        function updateToggleButtonAndStatus() {
+            toggleButton.classList.remove('btn-inactive', 'btn-initializing');
+            if (isInitializing) {
+                toggleButton.textContent = 'Please Wait...'; // Changed to "Please Wait..."
+                toggleButton.classList.add('btn-initializing');
+            } else if (isTracking) {
+                toggleButton.textContent = 'Stop Tracking';
+            } else {
+                toggleButton.textContent = 'Start Tracking';
+                toggleButton.classList.add('btn-inactive');
+            }
+        }
+
+        toggleButton.addEventListener('click', () => {
+            if (isInitializing) return; // Prevent clicks while initializing
+            if (isTracking) {
+                stopTracking();
+            } else {
+                startTracking();
+            }
+        });
+
+        // Initial state update on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            updateToggleButtonAndStatus();
+            // For logged-in users, initialize context and playback display from server-side data
+            const initialContextInfo = {{ initial_context_info| tojson
+        }};
+        if (Object.keys(initialContextInfo).length > 0) {
+            updateContextInfoDisplay(initialContextInfo);
+        } else {
+            updateContextInfoDisplay({}); // Ensure it's hidden if no info
+        }
+
+        // Playback info is not passed directly on page load anymore.
+        // It will be updated when tracking is started by the /toggle endpoint.
+        // Until then, keep N/A values.
+        updatePlaybackInfoDisplay({ device_name: 'N/A', is_playing: false, item_name: 'N/A', item_artist: 'N/A' });
+        updateQueueAndOverallStats({}); // Initialize with zeros
+        renderTracks([]); // Start with empty list until data loads or reset is triggered
+        });
+
+        {% endif %}
+    </script>
+</body>
+
+</html>

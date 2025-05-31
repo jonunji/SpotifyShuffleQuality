@@ -4,6 +4,7 @@ from spotipy.oauth2 import SpotifyOAuth
 import spotipy
 from dotenv import load_dotenv
 import time
+import trackmap
 
 load_dotenv()
 
@@ -99,21 +100,19 @@ def toggle():
                 context_info['type'] = context_type
 
                 if context_type == 'album':
-                    album = sp.album(context_id)
-                    context_info['name'] = album['name']
-                    context_info['image_url'] = album['images'][0]['url'] if album['images'] else None
-                    context_info['owner_name'] = album['artists'][0]['name'] if album['artists'] else None
-                    context_info['total_tracks'] = album['total_tracks']
+                    context = sp.album(context_id)
+                    context_info['name'] = context['name']
+                    context_info['owner_name'] = context['artists'][0]['name'] if context['artists'] else None
+                    context_info['total_tracks'] = context['total_tracks']
                 elif context_type == 'playlist':
-                    playlist = sp.playlist(context_id)
-                    context_info['name'] = playlist['name']
-                    context_info['image_url'] = playlist['images'][0]['url'] if playlist['images'] else None
-                    context_info['owner_name'] = playlist['owner']['display_name']
-                    context_info['total_tracks'] = playlist['tracks']['total']
+                    context = sp.playlist(context_id)
+                    context_info['name'] = context['name']
+                    context_info['image_url'] = context['images'][0]['url'] if context['images'] else None
+                    context_info['owner_name'] = context['owner']['display_name']
+                    context_info['total_tracks'] = context['tracks']['total']
                 elif context_type == 'artist':
-                    artist = sp.artist(context_id)
-                    context_info['name'] = artist['name']
-                    context_info['image_url'] = artist['images'][0]['url'] if artist['images'] else None
+                    context = sp.artist(context_id)
+                    context_info['name'] = context['name']
                     context_info['owner_name'] = None # Artists don't have an 'owner'
                     context_info['total_tracks'] = None # Artists don't have a 'total_tracks' count directly
                 else:
@@ -122,6 +121,7 @@ def toggle():
                     context_info['owner_name'] = None
                     context_info['total_tracks'] = None
 
+                context_info['image_url'] = context['images'][0]['url'] if context['images'] else None
 
             # Store original repeat state to restore it later
             session['original_repeat_state'] = current_playback.get('repeat_state', 'off')

@@ -26,3 +26,8 @@ when hitting reset while playing, it doesnt actually reset the data
 - need to exit early, or wait till it's done to reset the data
 
 need to divide things by playing/album and also have some master list.
+
+Look into when u get the queue, just skip 20 songs, and then regrab the top 20. Not sure if there's a way to skip that many times. Probably just a for loop 20 times, but that's way too many calls
+
+Also want way to export data
+• should be a flexible format 

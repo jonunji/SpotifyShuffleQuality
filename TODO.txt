@@ -31,3 +31,7 @@ Look into when u get the queue, just skip 20 songs, and then regrab the top 20. 
 
 Also want way to export data
 • should be a flexible format 
+
+
+all songs that match the genre
+all songs played by the same artist

@@ -9,7 +9,7 @@ class trackNode:
     def __str__(self):
         return f"Node(Prev: {self.prev}, Next: {self.next})"
 
-class trackMap:
+class TrackTrie:
 
     def __init__(self):
         self.trackNodes = {}
@@ -32,25 +32,22 @@ class trackMap:
         addToPatternPrev = lambda currentPattern, curTrackID: currentPattern.appendleft(curTrackID)
         addToPatternNext = lambda currentPattern, curTrackID: currentPattern.append(curTrackID)
 
-        prevPatterns = self.findPatterns(trackID, getPrevTrack, addToPatternPrev)
-        nextPatterns = self.findPatterns(trackID, getNextTrack, addToPatternNext)
+        # both prev and next will share the same IDs since they're populated at the same time
+        shuffleIDs = self.getShuffleIDs(trackID)
         
-        print(prevPatterns)
-        print(nextPatterns)
+        prevPatterns = self.findPatterns(trackID, getPrevTrack, addToPatternPrev, shuffleIDs)
+        nextPatterns = self.findPatterns(trackID, getNextTrack, addToPatternNext, shuffleIDs)
 
         res = {}
-        for i in range(0, self.numShuffles):
-            res[i] = list(prevPatterns[i])[:-1] + list(nextPatterns[i])
-
-        print(res)
+        for shuffleID in shuffleIDs:
+            res[shuffleID] = list(prevPatterns[shuffleID])[:-1] + list(nextPatterns[shuffleID])
 
         return res
         
-
-    def findPatterns(self, trackID, getNextTrack, addToPattern):
+    def findPatterns(self, trackID, getNextTrack, addToPattern, shuffleIDs):
         shuffleIDToPattern = {}
 
-        self.findPatternsHelper(range(0, self.numShuffles), 
+        self.findPatternsHelper(shuffleIDs, 
                                 trackID, 
                                 deque(), 
                                 shuffleIDToPattern, 
@@ -110,9 +107,29 @@ class trackMap:
 
         self.addTrack(cur, "", prev, shuffleID)
 
+    def getShuffleQueue(self, shuffleID, trackID):
+        q = deque()
+
+        # get everything before the selected track
+        cur = trackID
+        while cur != "":
+            q.appendleft(cur)
+            cur = self.trackNodes[cur].prev.get(shuffleID, "")
+
+        # get everything after the selected track
+        cur = self.trackNodes[trackID].next.get(shuffleID, "")
+        while cur != "":
+            q.append(cur)
+            cur = self.trackNodes[cur].next.get(shuffleID, "")
+
+        return q
+    
+    def getShuffleIDs(self, trackID):
+        return [key for key in self.trackNodes[trackID].prev]
+
     def __str__(self):
         """
-        Returns a string representation of the entire trackMap.
+        Returns a string representation of the entire TrackTrie.
         """
         if not self.trackNodes:
             return "Track Map is empty."
@@ -126,12 +143,14 @@ class trackMap:
         return "\n".join(map_string_parts)
 
 if __name__=="__main__":
-    tracks = trackMap()
+    tracks = TrackTrie()
     tracks.addShuffleQueue(deque(["B","A","D","E","C","F","A"]), 0)
     tracks.addShuffleQueue(deque(["A","D","E","C","B","O","T"]), 1)
     tracks.addShuffleQueue(deque(["B","D","E","C","A","F","W"]), 2)
     tracks.addShuffleQueue(deque(["D","B","E","C","A","F","S"]), 3)
     tracks.addShuffleQueue(deque(["X","D","B","E","C","A","P"]), 4)
+
+    print(tracks.getShuffleQueue(4, "B"))
 
     print(tracks)
     tracks.findAllPatterns("C")

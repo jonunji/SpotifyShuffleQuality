@@ -1,0 +1,872 @@
+:root {
+    --primary-green: #1ED760;
+    /* Slightly brighter Spotify green */
+    --dark-background: #121212;
+    --card-background: #181818;
+    --light-card-background: #282828;
+    --text-color-primary: #FFFFFF;
+    --text-color-secondary: #B3B3B3;
+    --border-color: #333333;
+    --accent-blue: #007bff;
+    /* For initializing state */
+    --error-color: #FF6347;
+    /* A clear error red */
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.5); /* Define a shadow variable for consistency */
+    --border-color-light: #3e3e3e; /* For dashed borders */
+}
+
+body {
+    font-family: 'Montserrat', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--dark-background);
+    color: var(--text-color-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.main-wrapper {
+    width: 100%;
+    max-width: 900px;
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+h1,
+h2,
+h3,
+h4 {
+    color: var(--primary-green);
+    font-weight: 700;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+h1 {
+    font-size: 2.5em;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.container {
+    background-color: var(--card-background);
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: var(--shadow);
+    transition: transform 0.2s ease-in-out;
+}
+
+.container:hover {
+    transform: translateY(-2px);
+}
+
+.btn {
+    background-color: var(--primary-green);
+    color: var(--dark-background);
+    border: none;
+    padding: 12px 25px;
+    border-radius: 30px;
+    font-size: 1.05em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    margin: 15px 0;
+    text-decoration: none;
+    display: inline-block;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.btn:hover {
+    background-color: #1DB954;
+    /* Slightly darker green on hover */
+    transform: translateY(-1px);
+}
+
+.btn-inactive {
+    background-color: #535353;
+    color: var(--text-color-primary);
+}
+
+.btn-inactive:hover {
+    background-color: #636363;
+}
+
+.btn-initializing {
+    background-color: var(--accent-blue);
+    cursor: default;
+    opacity: 0.9;
+}
+
+.btn-initializing:hover {
+    background-color: var(--accent-blue);
+    transform: translateY(0);
+}
+
+.status {
+    margin: 20px 0;
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 1.05em;
+    line-height: 1.5;
+}
+
+.status-active {
+    background-color: rgba(30, 215, 96, 0.15);
+    border-left: 5px solid var(--primary-green);
+    color: #C0FFEE;
+    /* A light green for text */
+}
+
+.status-inactive {
+    background-color: rgba(220, 220, 220, 0.08);
+    border-left: 5px solid var(--text-color-secondary);
+    color: var(--text-color-secondary);
+}
+
+.status-warning {
+    background-color: rgba(255, 165, 0, 0.15);
+    border-left: 5px solid #FFA500;
+    color: #FFD700;
+}
+
+#queue-data {
+    margin-top: 20px;
+}
+
+.track-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.track-item {
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+}
+
+.track-item:last-child {
+    border-bottom: none;
+}
+
+.track-item.active {
+    background-color: var(--light-card-background);
+    border-left: 3px solid var(--primary-green);
+    padding-left: 12px;
+}
+
+.track-item:hover:not(.active) {
+    background-color: #202020;
+}
+
+.track-main-info {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.track-image {
+    width: 70px;
+    height: 70px;
+    border-radius: 8px;
+    margin-right: 20px;
+    background-color: #333;
+    object-fit: cover;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.track-info {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.track-name {
+    font-weight: 600;
+    font-size: 1.15em;
+    margin-bottom: 5px;
+    color: var(--text-color-primary);
+}
+
+.track-artist {
+    color: var(--text-color-secondary);
+    font-size: 0.95em;
+}
+
+.track-frequency {
+    background-color: var(--primary-green);
+    color: var(--dark-background);
+    border-radius: 15px;
+    padding: 6px 12px;
+    font-weight: 700;
+    font-size: 1.1em;
+    min-width: 30px;
+    text-align: center;
+    margin-left: 20px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.nav-links {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 25px;
+    justify-content: center;
+}
+
+.nav-link {
+    color: var(--text-color-secondary);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.nav-link:hover {
+    color: var(--primary-green);
+}
+
+.no-tracks {
+    text-align: center;
+    color: var(--text-color-secondary);
+    padding: 50px 0;
+    font-size: 1.1em;
+    background-color: var(--light-card-background);
+    border-radius: 12px;
+    margin-top: 20px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.stat-box {
+    background-color: var(--light-card-background);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.stat-box p {
+    margin: 6px 0;
+    font-size: 0.95em;
+    color: var(--text-color-secondary);
+    line-height: 1.4;
+}
+
+.stat-value {
+    font-weight: 600;
+    color: var(--text-color-primary);
+    font-size: 1em;
+}
+
+.context-display {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-top: 15px;
+    background-color: #202020;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.context-image {
+    width: 90px;
+    height: 90px;
+    border-radius: 8px;
+    object-fit: cover;
+    background-color: #555;
+    flex-shrink: 0;
+}
+
+.context-details {
+    flex-grow: 1;
+}
+
+.context-details p {
+    margin: 5px 0;
+    color: var(--text-color-secondary);
+    font-size: 1em;
+}
+
+.track-details-dropdown {
+    background-color: #212121;
+    border-radius: 8px;
+    padding: 20px; /* Base padding for the dropdown content */
+    margin-top: 15px;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
+    display: none;
+    overflow: hidden;
+    animation: slideDown 0.3s ease-out forwards;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-15px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.track-details-dropdown h3 {
+    margin-top: 0;
+    color: var(--primary-green);
+    font-size: 1.2em;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.track-details-content .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center; /* Align items vertically in single-line rows */
+    margin-bottom: 12px; /* Increased spacing between stat rows */
+    padding-bottom: 8px; /* Adjusted padding below the content */
+    border-bottom: 1px dashed var(--border-color-light); /* Consistent dashed border */
+    font-size: 0.95em;
+}
+
+.track-details-content .stat-row:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.track-details-content .stat-label {
+    font-weight: 600;
+    color: var(--text-color-secondary);
+}
+
+.track-details-content .stat-value {
+    color: var(--text-color-primary);
+    text-align: right;
+    font-weight: 500;
+}
+
+/* Specific adjustments for rows with lists (like artist breakdown, genre match) */
+.track-details-content .stat-row[style*="flex-direction: column"] {
+    align-items: flex-start; /* Revert to flex-start for column layouts */
+    margin-bottom: 20px; /* More space for multi-line content */
+    padding-bottom: 10px;
+}
+
+.track-details-content .stat-list {
+    list-style-type: none;
+    padding-left: 0;
+    margin-top: 10px; /* Space from the label above it */
+    margin-bottom: 0;
+    color: var(--text-color-secondary);
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: #2b2b2b;
+    width: 100%; /* Ensure lists take full width within their container */
+    box-sizing: border-box; /* Include padding and border in the element's total width */
+}
+
+.track-details-content .stat-list li {
+    padding: 8px 12px; /* Increased padding for list items */
+    font-size: 0.9em;
+    border-bottom: 1px solid #3a3a3a;
+}
+
+.track-details-content .stat-list li:last-child {
+    border-bottom: none;
+}
+
+.track-details-content .stat-list li:hover {
+    background-color: #383838;
+}
+
+.track-details-content .nested-stat-list {
+    list-style-type: disc;
+    padding-left: 20px;
+    margin-top: 8px; /* Adjusted margin for nested lists */
+    margin-bottom: 8px;
+    background-color: transparent; /* No background for nested list itself */
+    border: none;
+    max-height: unset; /* Nested list shouldn't have its own scroll */
+    overflow-y: visible;
+}
+
+.track-details-content .nested-stat-list li {
+    padding: 4px 0; /* Adjusted padding for nested list items */
+    border-bottom: none;
+    font-size: 0.88em; /* Slightly smaller font for nested items */
+}
+
+/* Flash animation for stat-box */
+@keyframes flashEffect {
+    0% {
+        box-shadow: 0 0 0px 0px rgba(30, 215, 96, 0.7);
+    }
+
+    50% {
+        box-shadow: 0 0 15px 5px rgba(30, 215, 96, 0.7);
+    }
+
+    100% {
+        box-shadow: 0 0 0px 0px rgba(30, 215, 96, 0);
+    }
+}
+
+.stat-box.flash {
+    animation: flashEffect 0.5s ease-out;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 100;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    padding-top: 60px;
+}
+
+.modal-content {
+    background-color: var(--card-background);
+    margin: 5% auto;
+    padding: 30px;
+    border-radius: 12px;
+    width: 80%;
+    max-width: 600px; /* General modal width */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    position: relative;
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Specific styling for the Shuffle Comparison Modal */
+#shuffleComparisonModal .modal-content {
+    max-width: 90%; /* Wider than general modal */
+    width: 800px; /* Fixed width for the comparison modal */
+    padding: 30px; /* Keep consistent padding */
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-content h2 {
+    color: var(--primary-green);
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 1.8em;
+}
+
+.modal-content p {
+    color: var(--text-color-primary);
+    margin-bottom: 15px;
+    line-height: 1.6;
+    font-size: 1.05em;
+}
+
+/* Base style for modal content lists - this applies to all ul elements inside modals */
+.modal-content ul {
+    list-style: disc inside;
+    padding-left: 20px;
+    margin-bottom: 20px;
+    color: var(--text-color-secondary);
+}
+
+.modal-content ul li {
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+.modal-content ul li strong {
+    color: var(--primary-green);
+}
+
+.modal .btn {
+    display: block;
+    width: fit-content;
+    margin: 20px auto 0 auto;
+    padding: 12px 30px;
+}
+
+.close-button {
+    color: var(--text-color-secondary);
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    top: 15px;
+    right: 25px;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: var(--primary-green);
+    text-decoration: none;
+}
+
+.pattern-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.pattern-column {
+    flex: 1;
+    min-width: 150px;
+    background-color: #2b2b2b;
+    border-radius: 6px;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.pattern-column h4 {
+    color: var(--primary-green);
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1em;
+    text-align: center;
+    border-bottom: 1px solid #3e3e3e;
+    padding-bottom: 8px;
+}
+
+.pattern-column ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.pattern-column li {
+    padding: 4px 0;
+    color: var(--text-color-secondary);
+    font-size: 0.9em;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Highlight for selected track within patterns */
+.pattern-column li.selected-track-in-pattern {
+    font-weight: 700;
+    color: var(--text-color-primary);
+    background-color: rgba(30, 215, 96, 0.2);
+    border-radius: 4px;
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+/* Section divider within dropdowns */
+.section-divider {
+    border: none;
+    border-top: 1px dashed var(--border-color-light);
+    margin: 20px 0;
+}
+
+/* Custom dropdown select style */
+.shuffle-id-select {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background-color: var(--light-card-background);
+    color: var(--text-color-primary);
+    font-size: 0.95em;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url('data:image/svg+xml;utf8,<svg fill="%23B3B3B3" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 8px top 50%;
+    background-size: 20px auto;
+    cursor: pointer;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.shuffle-id-select:focus {
+    outline: none;
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 2px rgba(30, 215, 96, 0.3);
+}
+
+/* Buttons within dropdowns */
+.view-order-btn,
+.view-compare-order-btn {
+    background-color: var(--primary-green);
+    color: var(--dark-background);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-size: 0.95em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    text-decoration: none;
+    display: block;
+    margin: 10px auto 0 auto;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    white-space: nowrap;
+    /* Prevent text wrapping */
+}
+
+.view-order-btn:hover,
+.view-compare-order-btn:hover {
+    background-color: #1DB954;
+    transform: translateY(-1px);
+}
+
+/* Shuffle Comparison Controls */
+.shuffle-comparison-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: flex-end;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color);
+    /* Separator */
+}
+
+.shuffle-select-group {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 200px;
+}
+
+.shuffle-select-group label {
+    font-size: 0.9em;
+    color: var(--text-color-secondary);
+    margin-bottom: 5px;
+}
+
+/* Shuffle Order List (reused for both single and comparison modals) */
+.shuffle-order-list {
+    list-style-type: decimal; /* Decimal numbering for the list items */
+    padding-left: 25px; /* Indentation for numbers */
+    color: var(--text-color-primary);
+    max-height: 400px; /* Max height before scroll */
+    overflow-y: auto; /* Add scrollbar if content exceeds max-height */
+    margin-top: 20px; /* Space from the title/header */
+    background-color: #2b2b2b; /* Background for the list container */
+    border-radius: 8px;
+    padding: 15px 25px; /* Padding inside the list container */
+    border: 1px solid var(--border-color); /* Border around the list container */
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2); /* Inner shadow for depth */
+}
+
+.shuffle-order-list li {
+    padding: 5px 0;
+    border-bottom: 1px dashed var(--border-color-light);
+    font-size: 0.95em;
+}
+
+.shuffle-order-list li:last-child {
+    border-bottom: none;
+}
+
+/* Highlight track in shuffle order list */
+.shuffle-order-list li.highlight-track {
+    background-color: rgba(30, 215, 96, 0.2);
+    /* Lighter green highlight */
+    color: var(--primary-green);
+    font-weight: 700;
+    padding: 5px 8px;
+    border-radius: 4px;
+    margin: 2px 0;
+}
+
+/* Shuffle Comparison Container - Adjusted for better layout */
+.shuffle-order-comparison-container {
+    display: flex;
+    gap: 20px; /* Space between the columns */
+    justify-content: center; /* Center the two columns */
+    margin-top: 20px;
+    flex-wrap: wrap; /* Allows columns to wrap on smaller screens */
+}
+
+.shuffle-order-column {
+    flex: 1; /* Allows columns to grow and shrink, taking equal space */
+    min-width: 350px; /* Ensures columns don't get too narrow, adjusted for content */
+    /* Removed redundant styling here. The styling for the list itself
+       comes from .shuffle-order-list directly. */
+    display: flex; /* Use flexbox to stack h3 and ul */
+    flex-direction: column;
+    align-items: center; /* Center content horizontally within the column */
+}
+
+.shuffle-order-column h3 {
+    text-align: center;
+    color: var(--primary-green);
+    margin-top: 0;
+    margin-bottom: 15px; /* Space below title */
+    font-size: 1.2em;
+}
+
+/* Removed `.shuffle-order-column .shuffle-order-list` overrides
+   to ensure consistency with the single modal's list styling. */
+
+.error-message {
+    color: var(--error-color);
+    text-align: center;
+    padding: 10px;
+    margin-top: 15px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2em;
+    }
+
+    .main-wrapper {
+        padding: 15px;
+    }
+
+    .container {
+        padding: 20px;
+    }
+
+    .btn {
+        width: 100%;
+        box-sizing: border-box;
+        margin: 10px 0;
+    }
+
+    .nav-links {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .track-item {
+        padding: 10px;
+    }
+
+    .track-image {
+        width: 50px;
+        height: 50px;
+        margin-right: 15px;
+    }
+
+    .track-name {
+        font-size: 1em;
+    }
+
+    .track-artist {
+        font-size: 0.85em;
+    }
+
+    .track-frequency {
+        font-size: 1em;
+        padding: 4px 8px;
+    }
+
+    .context-image {
+        width: 70px;
+        height: 70px;
+    }
+
+    .context-details h3 {
+        font-size: 1.1em;
+    }
+
+    .context-details p {
+        font-size: 0.9em;
+    }
+
+    .modal-content {
+        width: 90%;
+        margin: 20px auto;
+        padding: 20px;
+    }
+
+    .modal-content h2 {
+        font-size: 1.5em;
+    }
+
+    .modal-content p,
+    .modal-content ul li {
+        font-size: 0.95em;
+    }
+
+    .shuffle-comparison-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    /* Responsive adjustments for compare modal */
+    .shuffle-order-comparison-container {
+        flex-direction: column; /* Stacks columns vertically on smaller screens */
+        align-items: center; /* Centers the columns when stacked */
+    }
+
+    .shuffle-order-column {
+        width: 100%; /* Full width when stacked */
+        max-width: 400px; /* Prevents them from being too wide on narrow screens */
+        margin-bottom: 20px; /* Space between stacked columns */
+        min-width: unset; /* Allow full width on small screens */
+    }
+
+    #shuffleComparisonModal .modal-content {
+        width: 95%;
+        max-width: unset; /* Remove max-width on smaller screens */
+    }
+}
+
+.shuffle-control-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.shuffle-pair {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.shuffle-control-row select {
+    flex: 1;
+    min-width: 150px;
+}
+
+.shuffle-control-row .btn {
+    flex-shrink: 0;
+}

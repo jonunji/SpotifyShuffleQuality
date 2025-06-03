@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
     <div id="instructionModal" class="modal">
         <div class="modal-content">
@@ -19,7 +20,7 @@
                 <li><strong>Keep Spotify playing:</strong> Ensure Spotify is actively playing music on a connected
                     device. This is needed for continuous calls to Spotify's servers.</li>
                 <li><strong>Clear Your Queue:</strong> Checks are made to determine if the list has been shuffled. Songs
-                    in the queue do not change, so this dis rupts that check.</li>
+                    in the queue do not change, so this disrupts that check.</li>
                 <li><strong>Play inside a playlist/album:</strong> To see statistics about a specific playlist or album
                     you're interested in, make sure to play music from where you're interested.</li>
             </ul>
@@ -31,30 +32,13 @@
         <div class="modal-content">
             <span class="close-button" id="closeShuffleOrderModal">&times;</span>
             <h2 id="shuffleOrderModalTitle">Shuffle Order</h2>
-            <ul id="shuffleOrderList" class="shuffle-order-list">
-                </ul>
+
+            <div id="shuffleOrderMultiContainer" class="shuffle-order-comparison-container"></div>
+
             <p id="shuffleOrderError" style="color: var(--error-color); text-align: center; display: none;"></p>
         </div>
     </div>
-    <div id="shuffleComparisonModal" class="modal">
-        <div class="modal-content">
-            <span class="close-button" id="closeShuffleComparisonModal">&times;</span>
-            <h2>Compare Shuffle Orders</h2>
 
-            <div class="shuffle-order-comparison-container">
-            <div class="shuffle-order-column">
-                <h3>Shuffle A</h3>
-                <ul id="shuffleOrderListA" class="shuffle-order-list"></ul>
-            </div>
-            <div class="shuffle-order-column">
-                <h3>Shuffle B</h3>
-                <ul id="shuffleOrderListB" class="shuffle-order-list"></ul>
-            </div>
-            </div>
-
-            <p id="shuffleComparisonError" class="error-message" style="display: none;"></p>
-        </div>
-    </div>
 
     <div class="main-wrapper">
         <h1>Spotify Shuffle Analyzer</h1>
@@ -90,7 +74,6 @@
             <div class="stat-box">
                 <h3>Current Playback</h3>
                 <p>Device: <span id="playback-device" class="stat-value">N/A</span></p>
-                <p>Status: <span id="playback-status" class="stat-value">N/A</span></p>
                 <p>Song: <span id="playback-item-name" class="stat-value">N/A</span></p>
                 <p>Artist: <span id="playback-item-artist" class="stat-value">N/A</span></p>
             </div>
@@ -98,6 +81,7 @@
                 <h3>Tracking Summary</h3>
                 <p>Unique Tracks Tracked: <span id="total-unique-tracks" class="stat-value">0</span></p>
                 <p>Total Plays Counted: <span id="total-plays-counted" class="stat-value">0</span></p>
+                <p>Number of Tracks Displayed: <span id="total-tracks-shown" class="stat-value">0</span></p>
             </div>
             <div class="stat-box" style="grid-column: 1 / -1;">
                 <h3>Current Context (<span id="context-type" class="stat-value">Unknown</span>)</h3>
@@ -115,6 +99,14 @@
 
         <div id="queue-data" class="container">
             <h2>Your Most Played Tracks in Queue</h2>
+            <div class="search-and-pagination-controls">
+                <input type="text" id="track-search-input" placeholder="Search by song or artist name" disabled>
+                <div class="pagination-controls">
+                    <button id="prev-page-btn" disabled>&laquo; Prev</button>
+                    <span id="page-info">Page 1</span>
+                    <button id="next-page-btn" disabled>Next &raquo;</button>
+                </div>
+            </div>
             <ul class="track-list" id="track-list-container">
             </ul>
             <div class="no-tracks" id="no-tracks-message" style="display: none;">
@@ -134,8 +126,11 @@
         {% if logged_in %}
 
         let isTracking = {{ running| tojson }};
-        let continueTracking = false;
         let isInitializing = false;
+        let currentPage = 0;
+        const tracksPerPage = 50; // Default for non-tracking mode
+        let currentSearchQuery = '';
+        let hasMoreTracks = false;
 
         const toggleButton = document.getElementById('toggle-tracking');
         const statusContainer = document.getElementById('status-container');
@@ -145,14 +140,13 @@
 
         // Playback Info Elements
         const playbackDevice = document.getElementById('playback-device');
-        const playbackStatus = document.getElementById('playback-status');
         const playbackItemName = document.getElementById('playback-item-name');
         const playbackItemArtist = document.getElementById('playback-item-artist');
 
         const totalUniqueTracks = document.getElementById('total-unique-tracks');
         const totalPlaysCounted = document.getElementById('total-plays-counted');
+        const totalTracksShown = document.getElementById('total-tracks-shown');
         const trackingSummaryBox = document.getElementById('tracking-summary-box');
-
 
         // Context Info Elements
         const contextType = document.getElementById('context-type');
@@ -170,15 +164,36 @@
 
         // shuffle order modal
         const shuffleOrderModal = document.getElementById('shuffleOrderModal');
-        const closeShuffleOrderModal = document.getElementById('closeShuffleOrderModal');
-        const shuffleOrderList = document.getElementById('shuffleOrderList');
-        const shuffleOrderError = document.getElementById('shuffleOrderError');
         const shuffleOrderModalTitle = document.getElementById('shuffleOrderModalTitle');
+        const shuffleOrderMultiContainer = document.getElementById('shuffleOrderMultiContainer');
+        const shuffleOrderError = document.getElementById('shuffleOrderError');
 
-        const shuffleComparisonModal = document.getElementById('shuffleComparisonModal');
-        const shuffleOrderListA = document.getElementById('shuffleOrderListA');
-        const shuffleOrderListB = document.getElementById('shuffleOrderListB');
-        const shuffleComparisonError = document.getElementById('shuffleComparisonError');
+        // Pagination and Search elements
+        const trackSearchInput = document.getElementById('track-search-input');
+        const prevPageBtn = document.getElementById('prev-page-btn');
+        const nextPageBtn = document.getElementById('next-page-btn');
+        const pageInfo = document.getElementById('page-info');
+
+        function updatePaginationControls(resetControls = false) {
+            if (isTracking) {
+                // Disable all pagination controls when tracking is active
+                trackSearchInput.disabled = true;
+                prevPageBtn.disabled = true;
+                nextPageBtn.disabled = true;
+                pageInfo.textContent = `Page 1 (Top ${tracksPerPage})`;
+            } else {
+                trackSearchInput.disabled = false;
+                prevPageBtn.disabled = currentPage === 0;
+                nextPageBtn.disabled = !hasMoreTracks;
+                pageInfo.textContent = `Page ${currentPage + 1} / ${Math.ceil(totalUniqueTracks.textContent / tracksPerPage)}`;
+            }
+
+            if (resetControls) {
+                currentPage = 0; // Reset pagination when tracking starts
+                currentSearchQuery = '';
+                trackSearchInput.value = ''; // Clear search input
+            }
+        }
 
         function renderTracks(tracks) {
             trackListContainer.innerHTML = '';
@@ -332,9 +347,9 @@
                         <span class="stat-label" style="margin-bottom: 5px;">Songs Matching Genres:</span>
                         <ul class="stat-list">
                             ${stats.songs_matching_genre.map(t => {
-                                const artists = t.artists.map(a => a.name).join(', ');
-                                return `<li><strong>${artists}</strong>: ${t.name} (${t.frequency} plays)</li>`;
-                            }).join('')}
+                    const artists = t.artists.map(a => a.name).join(', ');
+                    return `<li><strong>${artists}</strong>: ${t.name} (${t.frequency} plays)</li>`;
+                }).join('')}
                         </ul>
                     </div>`;
             } else {
@@ -360,7 +375,7 @@
                     const trackListItems = patternTracks.map(track_obj => {
                         // Crucial for bolding: Ensure comparison is robust
                         const isSelectedTrackInPattern = String(track_obj.id) === String(selected_track_id);
-                        const classAttr = isSelectedTrackInPattern ? ' class="selected-track-in-pattern"' : '';
+                        const classAttr = isSelectedTrackInPattern ? ' class="highlight-track"' : '';
                         return `<li${classAttr}>${track_obj.name}</li>`;
                     }).join('');
 
@@ -389,30 +404,17 @@
                     </div>`;
             }
 
+            let shuffleSelectOptions = stats.shuffle_ids.map(id => `<option value="${id}">${id}</option>`).join('');
+
             shuffleOrderHtml = `
-                <div class="shuffle-control-row">
-                ${stats.shuffle_ids.length === 1 ? `
-                    <select class="shuffle-id-select" id="shuffleIdSelect-${stats.id}">
-                    <option value="">Select Shuffle ID</option>
-                    <option value="${stats.shuffle_ids[0]}">${stats.shuffle_ids[0]}</option>
-                    </select>
-                    <button class="btn view-order-btn" data-track-id="${stats.id}" style="display: none;">View Order</button>
-                ` : `
-                    <div class="shuffle-pair">
-                    <select class="shuffle-id-select" id="compareShuffleIdSelectA-${stats.id}">
-                        <option value="">Shuffle A</option>
-                        ${stats.shuffle_ids.map(id => `<option value="${id}">${id}</option>`).join('')}
-                    </select>
-                    <select class="shuffle-id-select" id="compareShuffleIdSelectB-${stats.id}">
-                        <option value="">Shuffle B</option>
-                        ${stats.shuffle_ids.map(id => `<option value="${id}">${id}</option>`).join('')}
-                    </select>
+                    <span class="stat-label" style="margin-bottom: 5px;">Relevant Shuffle Queues:</span>
+                    <div class="shuffle-control-row"">
+                        <select class="shuffle-id-multiselect" id="shuffleMultiSelect-${stats.id}" multiple size="4">
+                            ${shuffleSelectOptions}
+                        </select>
+                        <button class="view-order-btn" disabled style="height: fit-content;">View Shuffle Order</button>
                     </div>
-                    <button class="btn view-order-btn" data-track-id="${stats.id}" style="display: none;">View Order</button>
-                    <button class="btn view-compare-order-btn" data-track-id="${stats.id}" style="display: none;">Compare Orders</button>
-                `}
-                </div>
-                `;
+            `;
 
             dropdownElement.innerHTML = `
                 <div class="track-details-content">
@@ -451,201 +453,110 @@
                 </div>
             `;
 
-            const viewOrderBtn = dropdownElement.querySelector('.view-order-btn');
-            const compareBtn = dropdownElement.querySelector('.view-compare-order-btn');
+            // Attach listener to multi-select and view button
+            const multiSelect = dropdownElement.querySelector(`#shuffleMultiSelect-${stats.id}`);
+            const viewBtn = dropdownElement.querySelector('.view-order-btn');
 
-            if (stats.shuffle_ids.length === 1) {
-            const select = dropdownElement.querySelector(`#shuffleIdSelect-${stats.id}`);
-            select.addEventListener('change', (e) => {
-                viewOrderBtn.dataset.shuffleId = e.target.value;
-                viewOrderBtn.dataset.trackId = selected_track_id;
-                viewOrderBtn.style.display = e.target.value ? 'block' : 'none';
+            // Update the view button when selection changes
+            function updateMultiSelectButton() {
+                const selectedOptions = Array.from(multiSelect.selectedOptions).map(opt => opt.value);
+
+                viewBtn.dataset.shuffleIds = JSON.stringify(selectedOptions);
+                viewBtn.dataset.trackId = selected_track_id;
+
+                viewBtn.disabled = selectedOptions.length === 0; // Disable if nothing is selected
+            }
+
+            multiSelect.addEventListener('change', updateMultiSelectButton);
+            updateMultiSelectButton(); // initialize state
+
+            // Handle button click
+            viewBtn.addEventListener('click', (e) => {
+                const shuffleIds = JSON.parse(e.currentTarget.dataset.shuffleIds);
+                const selectedTrackId = e.currentTarget.dataset.trackId;
+
+                handleCompareMultipleShuffles(shuffleIds, selectedTrackId);  // send full list
             });
-            viewOrderBtn.addEventListener('click', handleViewOrderClick);
-            } else {
-            const selectA = dropdownElement.querySelector(`#compareShuffleIdSelectA-${stats.id}`);
-            const selectB = dropdownElement.querySelector(`#compareShuffleIdSelectB-${stats.id}`);
-
-            function updateButtons() {
-                const valA = selectA.value;
-                const valB = selectB.value;
-                compareBtn.dataset.trackId = selected_track_id;
-                viewOrderBtn.dataset.trackId = selected_track_id;
-
-                if (valA && valB) {
-                    compareBtn.dataset.shuffleIdA = valA;
-                    compareBtn.dataset.shuffleIdB = valB;
-                    compareBtn.style.display = 'block';
-                    viewOrderBtn.style.display = 'none'; // Hide single view button
-                } else if (valA) { // Only A is selected
-                    viewOrderBtn.dataset.shuffleId = valA;
-                    viewOrderBtn.style.display = 'block';
-                    compareBtn.style.display = 'none'; // Hide compare button
-                } else if (valB) { // Only B is selected
-                    viewOrderBtn.dataset.shuffleId = valB;
-                    viewOrderBtn.style.display = 'block';
-                    compareBtn.style.display = 'none'; // Hide compare button
-                } else {
-                    viewOrderBtn.style.display = 'none';
-                    compareBtn.style.display = 'none';
-                }
-            }
-
-            selectA.addEventListener('change', updateButtons);
-            selectB.addEventListener('change', updateButtons);
-
-            viewOrderBtn.addEventListener('click', handleViewOrderClick);
-            compareBtn.addEventListener('click', handleViewCompareOrderClick);
-            }
         }
 
-        // New reusable function to display a single shuffle order modal
-        async function displayShuffleOrderModal(shuffleId, selectedTrackId, title = `Shuffle Order (ID: ${shuffleId})`) {
-            console.log(shuffleId)
-            console.log(selectedTrackId)
-            if (!shuffleId) {
-                console.error("No shuffle ID provided to displayShuffleOrderModal.");
-                shuffleOrderError.textContent = 'Error: No Shuffle ID provided.';
-                shuffleOrderError.style.display = 'block';
-                shuffleOrderModal.style.display = 'block'; // Still show modal with error
-                shuffleOrderList.innerHTML = '';
-                return;
-            }
+        function createShuffleOrderContainer(shuffleId, selectedTrackId, shuffleOrder) {
+            const container = document.createElement('div');
+            container.classList.add('shuffle-order-column');
 
-            shuffleOrderModalTitle.textContent = title;
-            shuffleOrderList.innerHTML = '<div style="text-align: center; color: var(--text-color-secondary); padding: 20px;">Loading...</div>';
+            const titleEl = document.createElement('h3');
+            titleEl.textContent = `Shuffle ID: ${shuffleId}`;
+            container.appendChild(titleEl);
+
+            const ul = document.createElement('ul');
+            ul.classList.add('shuffle-order-list');
+
+            if (shuffleOrder?.length > 0) {
+                shuffleOrder.forEach(track => {
+                    const li = document.createElement('li');
+                    li.textContent = `${track.name} - ${track.artists.map(a => a.name).join(', ')}`;
+                    if (String(track.id) === String(selectedTrackId)) {
+                        li.classList.add('highlight-track');  // Highlight the selected track
+                    }
+                    ul.appendChild(li);
+                });
+            } else {
+                const li = document.createElement('li');
+                li.style.textAlign = 'center';
+                li.style.color = 'var(--text-color-secondary)';
+                li.textContent = 'No tracks found for this shuffle.';
+                ul.appendChild(li);
+            }
+            container.appendChild(ul);
+
+            return container;
+        }
+
+        // Compare multiple shuffle orders (2 or more)
+        async function handleCompareMultipleShuffles(shuffleIds, selectedTrackId) {
+            shuffleOrderModalTitle.textContent = shuffleIds.length == 1 ? `` : `Comparing ${shuffleIds.length} Shuffles`;
+            shuffleOrderMultiContainer.innerHTML = '<div style="text-align: center; color: var(--text-color-secondary); padding: 20px;">Loading...</div>';
             shuffleOrderError.style.display = 'none';
             shuffleOrderModal.style.display = 'block';
 
             try {
-                const response = await fetch(`/shuffle_order/${shuffleId}/${selectedTrackId}`);
-                const data = await response.json();
+                const responses = await Promise.all(
+                    shuffleIds.map(id => fetch(`/shuffle_order/${id}/${selectedTrackId}`))
+                );
+                const allData = await Promise.all(responses.map(res => res.json()));
 
-                if (data.status === 'error') {
-                    shuffleOrderList.innerHTML = '';
-                    shuffleOrderError.textContent = `Error: ${data.error}`;
-                    shuffleOrderError.style.display = 'block';
-                } else {
-                    shuffleOrderList.innerHTML = ''; // Clear loading message
-                    if (data.shuffle_order && data.shuffle_order.length > 0) {
-                        data.shuffle_order.forEach(track => {
-                            const listItem = document.createElement('li');
-                            listItem.textContent = `${track.name} - ${track.artists.map(a => a.name).join(', ')}`;
-                            // Apply the highlight-track class if this is the selected track
-                            if (String(track.id) === String(selectedTrackId)) {
-                                listItem.classList.add('highlight-track');
-                            }
-                            shuffleOrderList.appendChild(listItem);
-                        });
-                    } else {
-                        shuffleOrderList.innerHTML = '<li style="text-align: center; color: var(--text-color-secondary);">No tracks found for this shuffle ID.</li>';
+                for (const data of allData) {
+                    if (data.status === 'error') {
+                        shuffleOrderMultiContainer.innerHTML = '';
+                        shuffleOrderError.textContent = `Error: ${data.error}`;
+                        shuffleOrderError.style.display = 'block';
+                        return;
                     }
                 }
-            } catch (error) {
-                console.error('Error fetching shuffle order:', error);
-                shuffleOrderList.innerHTML = '';
-                shuffleOrderError.textContent = 'Network error fetching shuffle order.';
+
+                shuffleOrderMultiContainer.innerHTML = '';
+                allData.forEach((data, index) => {
+                    const container = createShuffleOrderContainer(shuffleIds[index], selectedTrackId, data.shuffle_order);
+                    shuffleOrderMultiContainer.appendChild(container);
+                });
+            } catch (err) {
+                console.error('Compare shuffle error:', err);
+                shuffleOrderMultiContainer.innerHTML = '';
+                shuffleOrderError.textContent = 'Network error fetching comparison.';
                 shuffleOrderError.style.display = 'block';
-            }
-        }
-
-        async function handleViewOrderClick(event) {
-            const shuffleId = event.currentTarget.dataset.shuffleId;
-            const selectedTrackId = event.currentTarget.dataset.trackId;
-            console.log('handleViewOrderClick called. shuffleId:', shuffleId, 'selectedTrackId:', selectedTrackId);
-            displayShuffleOrderModal(shuffleId, selectedTrackId);
-        }
-
-        async function handleViewCompareOrderClick(event) {
-            const shuffleIdA = event.currentTarget.dataset.shuffleIdA;
-            const shuffleIdB = event.currentTarget.dataset.shuffleIdB;
-            const selectedTrackId = event.currentTarget.dataset.trackId;
-
-            console.log(selectedTrackId)
-
-            // If only one is selected, default to showing the single shuffle order modal
-            if (!shuffleIdA && shuffleIdB) {
-                displayShuffleOrderModal(shuffleIdB, selectedTrackId, `Shuffle Order (ID: ${shuffleIdB})`);
-                return;
-            } else if (shuffleIdA && !shuffleIdB) {
-                displayShuffleOrderModal(shuffleIdA, selectedTrackId, `Shuffle Order (ID: ${shuffleIdA})`);
-                return;
-            } else if (!shuffleIdA && !shuffleIdB) {
-                // This case means neither A nor B is selected, button should ideally be hidden
-                console.warn("Neither Shuffle A nor Shuffle B selected for comparison.");
-                return;
-            }
-
-            // Proceed with full comparison modal if both IDs are selected
-            shuffleOrderListA.innerHTML = '<div style="text-align: center; color: var(--text-color-secondary); padding: 20px;">Loading...</div>';
-            shuffleOrderListB.innerHTML = '<div style="text-align: center; color: var(--text-color-secondary); padding: 20px;">Loading...</div>';
-            shuffleComparisonError.style.display = 'none';
-            shuffleComparisonModal.style.display = 'block';
-
-            try {
-                const [responseA, responseB] = await Promise.all([
-                    fetch(`/shuffle_order/${shuffleIdA}/${selectedTrackId}`),
-                    fetch(`/shuffle_order/${shuffleIdB}/${selectedTrackId}`)
-                ]);
-
-                const dataA = await responseA.json();
-                const dataB = await responseB.json();
-
-                if (dataA.status === 'error' || dataB.status === 'error') {
-                    shuffleOrderListA.innerHTML = '';
-                    shuffleOrderListB.innerHTML = '';
-                    shuffleComparisonError.textContent = `Error loading one or both shuffle orders: ${dataA.error || ''} ${dataB.error || ''}`;
-                    shuffleComparisonError.style.display = 'block';
-                    return;
-                }
-
-                // Render Shuffle A
-                shuffleOrderListA.innerHTML = '';
-                if (dataA.shuffle_order?.length > 0) {
-                    dataA.shuffle_order.forEach(track => {
-                        const listItem = document.createElement('li');
-                        listItem.textContent = `${track.name} - ${track.artists.map(a => a.name).join(', ')}`;
-                        if (String(track.id) === String(selectedTrackId)) {
-                            listItem.classList.add('highlight-track');
-                        }
-                        shuffleOrderListA.appendChild(listItem);
-                    });
-                } else {
-                    shuffleOrderListA.innerHTML = '<li style="text-align: center; color: var(--text-color-secondary);">No tracks found for Shuffle A.</li>';
-                }
-
-                // Render Shuffle B
-                shuffleOrderListB.innerHTML = '';
-                if (dataB.shuffle_order?.length > 0) {
-                    dataB.shuffle_order.forEach(track => {
-                        const listItem = document.createElement('li');
-                        listItem.textContent = `${track.name} - ${track.artists.map(a => a.name).join(', ')}`;
-                        if (String(track.id) === String(selectedTrackId)) {
-                            listItem.classList.add('highlight-track');
-                        }
-                        shuffleOrderListB.appendChild(listItem);
-                    });
-                } else {
-                    shuffleOrderListB.innerHTML = '<li style="text-align: center; color: var(--text-color-secondary);">No tracks found for Shuffle B.</li>';
-                }
-
-            } catch (error) {
-                console.error('Error fetching shuffle comparison data:', error);
-                shuffleOrderListA.innerHTML = '';
-                shuffleOrderListB.innerHTML = '';
-                shuffleComparisonError.textContent = 'Network error fetching comparison data.';
-                shuffleComparisonError.style.display = 'block';
             }
         }
 
         function updateQueueAndOverallStats(data) {
             totalUniqueTracks.textContent = data.total_unique_tracks || 0;
             totalPlaysCounted.textContent = data.total_plays_counted || 0;
+            totalTracksShown.textContent = data.queue.length
+            hasMoreTracks = data.has_more;
 
             if (totalUniqueTracks.textContent == 0 && totalPlaysCounted.textContent == 0) {
                 return;
             }
 
+            // Flash the box for the number of total tracks
             trackingSummaryBox.classList.remove('flash');
             void trackingSummaryBox.offsetWidth;
             trackingSummaryBox.classList.add('flash');
@@ -653,7 +564,6 @@
 
         function updatePlaybackInfoDisplay(info) {
             playbackDevice.textContent = info.device_name || 'N/A';
-            playbackStatus.textContent = info.is_playing ? 'Playing' : 'Paused';
             playbackItemName.textContent = info.item_name || 'N/A';
             playbackItemArtist.textContent = info.item_artist || 'N/A';
         }
@@ -694,43 +604,61 @@
         }
 
         async function fetchQueueData() {
-            if (!continueTracking) {
-                return;
-            }
-
             try {
-                const response = await fetch('/queue_data');
-                const data = await response.json();
+                if (!isTracking) { // Only fetch if not tracking and not in an active tracking cycle
+                    const offset = currentPage * tracksPerPage;
+                    const limit = tracksPerPage;
+                    const url = `/queue_data?offset=${offset}&limit=${limit}&search=${encodeURIComponent(currentSearchQuery)}`;
 
-                if (data.status === 'error') {
-                    statusText.innerHTML = `Error: <strong>${data.error}</strong>`;
-                    statusContainer.className = 'status status-warning';
+                    const response = await fetch(url);
+                    data = await response.json();
 
-                    if (data.error.includes("Token expired")) {
-                        alert('Your Spotify session has expired. Please log in again.');
-                        window.location.href = '/login';
-                        return;
-                    } else if (data.error.includes("Please start playing a song") || data.error.includes("Tracking setup incomplete") || data.error.includes("No active Spotify device found")) {
-                        stopTracking(false);
+                    if (data.status === 'error') {
+                        statusText.innerHTML = `Error: <strong>${data.error}</strong>`;
+                        statusContainer.className = 'status status-warning';
+                        if (data.error.includes("Token expired")) {
+                            alert('Your Spotify session has expired. Please log in again.');
+                            window.location.href = '/login';
+                            return;
+                        }
                     }
-                } else if (data.status === 'paused') {
-                    statusText.innerHTML = `Queue tracking is <strong>inactive</strong>. Playback paused or no active device/song.`;
-                    statusContainer.className = 'status status-inactive';
-                    stopTracking(false);
-                } else {
-                    renderTracks(data.queue);
-                    updateQueueAndOverallStats(data);
                 }
+                else {
+                    // When tracking, offset is always 0 and limit is tracksPerPage
+                    const url = `/queue_data?offset=0&limit=${tracksPerPage}&search=${encodeURIComponent(currentSearchQuery)}`;
+                    const response = await fetch(url);
+                    data = await response.json();
 
-            } catch (error) {
+                    if (data.status === 'error') {
+                        statusText.innerHTML = `Error: <strong>${data.error}</strong>`;
+                        statusContainer.className = 'status status-warning';
+
+                        if (data.error.includes("Token expired")) {
+                            alert('Your Spotify session has expired. Please log in again.');
+                            window.location.href = '/login';
+                            return;
+                        } else if (data.error.includes("Please start playing a song") || data.error.includes("Tracking setup incomplete") || data.error.includes("No active Spotify device found")) {
+                            stopTracking(data.error);
+                        }
+                    } else {
+                        renderTracks(data.queue);
+                        updateQueueAndOverallStats(data);
+                        // Pagination controls are always disabled when tracking
+                        updatePaginationControls();
+                    }
+                }
+            }
+            catch (error) {
                 console.error('Error fetching queue data:', error);
-                statusText.innerHTML = `Network error or server unreachable: <strong>${error.message}</strong>`;
-                statusContainer.className = 'status status-inactive';
-                stopTracking(false);
+                stopTracking("Network error or server unreachable: <strong>${error.message}</strong>");
             } finally {
-                if (continueTracking) {
+                if (isTracking) {
                     setTimeout(fetchQueueData, 1000);
                 }
+
+                renderTracks(data.queue);
+                updateQueueAndOverallStats(data);
+                updatePaginationControls();
             }
         }
 
@@ -740,13 +668,17 @@
             isInitializing = true;
             updateToggleButtonAndStatus();
 
+            statusText.innerHTML = 'Queue tracking is <strong>starting</strong>...';
+            statusContainer.className = 'status status-inactive';
+
             try {
                 const response = await fetch('/toggle', { method: 'POST' });
                 const data = await response.json();
 
+                isInitializing = false;
+
                 if (data.status === 'started') {
                     isTracking = true;
-                    isInitializing = false;
                     updateToggleButtonAndStatus();
                     statusText.innerHTML = 'Queue tracking is <strong>active</strong>. We\'re automatically analyzing your Spotify queue.';
                     statusContainer.className = 'status status-active';
@@ -764,14 +696,13 @@
                         dropdown.innerHTML = '';
                     });
 
-                    continueTracking = true;
+                    updatePaginationControls(true);
                     fetchQueueData();
                 } else {
                     isTracking = false;
-                    isInitializing = false;
                     updateToggleButtonAndStatus();
                     statusText.innerHTML = `Error starting tracking: <strong>${data.error}</strong>`;
-                    statusContainer.className = 'status status-warning';
+                    statusContainer.className = 'status status-error';
                 }
             } catch (error) {
                 console.error('Error starting tracking:', error);
@@ -779,37 +710,40 @@
                 isInitializing = false;
                 updateToggleButtonAndStatus();
                 statusText.innerHTML = `Network error: <strong>Failed to start tracking.</strong>`;
-                statusContainer.className = 'status status-warning';
+                statusContainer.className = 'status status-error';
             }
         }
 
-        async function stopTracking(sendToggleRequest = true) {
-            continueTracking = false;
+        async function stopTracking(errorMessage = "") {
+            isTracking = false;
             isInitializing = false;
 
-            if (sendToggleRequest) {
-                try {
-                    const response = await fetch('/toggle', { method: 'POST' });
-                    const data = await response.json();
-                    if (data.status === 'stopped') {
-                        statusText.innerHTML = 'Queue tracking is <strong>inactive</strong>. Click the button below to start tracking.';
-                        statusContainer.className = 'status status-inactive';
-                    } else {
-                        statusText.innerHTML = `Error stopping tracking cleanly: <strong>${data.error}</strong>`;
-                        statusContainer.className = 'status status-inactive';
-                    }
-                } catch (error) {
-                    console.error('Error during stopping tracking:', error);
-                    statusText.innerHTML = `Network error: <strong>Failed to stop tracking.</strong>`;
-                    statusContainer.className = 'status status-inactive';
+            try {
+                const response = await fetch('/toggle', { method: 'POST' });
+                const data = await response.json();
+
+                if (errorMessage) {
+                    statusText.innerHTML = 'Queue tracking is <strong>inactive</strong>. Playback paused or no active device/song.';
+                    statusContainer.className = 'status status-error';
                 }
-            } else {
-                statusText.innerHTML = 'Queue tracking is <strong>inactive</strong>. Playback paused or no active device/song.';
-                statusContainer.className = 'status status-warning';
+
+                if (data.status === 'stopped') {
+                    statusText.innerHTML = 'Queue tracking is <strong>inactive</strong>. Click the button below to start tracking.';
+                    statusContainer.className = 'status status-inactive';
+                } else {
+                    statusText.innerHTML = `Error stopping tracking cleanly: <strong>${data.error}</strong>`;
+                    statusContainer.className = 'status status-error';
+                }
+
+            } catch (error) {
+                console.error('Error during stopping tracking:', error);
+                statusText.innerHTML = `Network error: <strong>Failed to stop tracking.</strong>`;
+                statusContainer.className = 'status status-error';
             }
 
-            isTracking = false;
+            fetchQueueData(); // Fetch initial data for stopped state
             updateToggleButtonAndStatus();
+            updatePaginationControls(true);
         }
 
         function updateToggleButtonAndStatus() {
@@ -834,70 +768,88 @@
             }
         });
 
+        // Pagination event listeners
+        prevPageBtn.addEventListener('click', () => {
+            if (currentPage > 0) {
+                currentPage--;
+                fetchQueueData();
+            }
+        });
+
+        nextPageBtn.addEventListener('click', () => {
+            if (hasMoreTracks) {
+                currentPage++;
+                fetchQueueData();
+            }
+        });
+
+        // Search input event listener (debounced)
+        let searchTimeout;
+        trackSearchInput.addEventListener('input', (event) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                currentSearchQuery = event.target.value;
+                currentPage = 0; // Reset to first page on new search
+                fetchQueueData();
+            }, 300); // Debounce for 300ms
+        });
+
+
         document.addEventListener('DOMContentLoaded', () => {
             updateToggleButtonAndStatus();
-            const initialContextInfo = {{ initial_context_info| tojson }};
-            if (Object.keys(initialContextInfo).length > 0) {
-                updateContextInfoDisplay(initialContextInfo);
-            } else {
-                updateContextInfoDisplay({});
+            const initialContextInfo = {{ initial_context_info| tojson
+        }};
+        if (Object.keys(initialContextInfo).length > 0) {
+            updateContextInfoDisplay(initialContextInfo);
+        } else {
+            updateContextInfoDisplay({});
+        }
+
+        updatePlaybackInfoDisplay({ device_name: 'N/A', is_playing: false, item_name: 'N/A', item_artist: 'N/A' });
+
+        const initialQueueData = {{ initial_queue_data | tojson }};
+        updateQueueAndOverallStats(initialQueueData);
+        renderTracks(initialQueueData.queue);
+        updatePaginationControls(); // Initialize pagination button states
+
+        const hasSeenInstructions = sessionStorage.getItem('hasSeenInstructions');
+        if (!hasSeenInstructions) {
+            instructionModal.style.display = 'block';
+        }
+
+        closeButton.addEventListener('click', () => {
+            instructionModal.style.display = 'none';
+            sessionStorage.setItem('hasSeenInstructions', 'true');
+        });
+
+        modalUnderstoodButton.addEventListener('click', () => {
+            instructionModal.style.display = 'none';
+            sessionStorage.setItem('hasSeenInstructions', 'true');
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target == instructionModal) {
+                instructionModal.style.display = 'none';
+                sessionStorage.setItem('hasSeenInstructions', 'true');
             }
+        });
 
-            updatePlaybackInfoDisplay({ device_name: 'N/A', is_playing: false, item_name: 'N/A', item_artist: 'N/A' });
-            updateQueueAndOverallStats({});
-            renderTracks([]);
-
-            const hasSeenInstructions = sessionStorage.getItem('hasSeenInstructions');
-            if (!hasSeenInstructions) {
+        if (helpButton) {
+            helpButton.addEventListener('click', (event) => {
+                event.preventDefault();
                 instructionModal.style.display = 'block';
-            }
-
-            closeButton.addEventListener('click', () => {
-                instructionModal.style.display = 'none';
-                sessionStorage.setItem('hasSeenInstructions', 'true');
             });
+        }
 
-            modalUnderstoodButton.addEventListener('click', () => {
-                instructionModal.style.display = 'none';
-                sessionStorage.setItem('hasSeenInstructions', 'true');
-            });
+        closeShuffleOrderModal.addEventListener('click', () => {
+            shuffleOrderModal.style.display = 'none';
+        });
 
-            window.addEventListener('click', (event) => {
-                if (event.target == instructionModal) {
-                    instructionModal.style.display = 'none';
-                    sessionStorage.setItem('hasSeenInstructions', 'true');
-                }
-            });
-
-            if (helpButton) {
-                helpButton.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    instructionModal.style.display = 'block';
-                });
-            }
-
-            closeShuffleOrderModal.addEventListener('click', () => {
+        window.addEventListener('click', (event) => {
+            if (event.target == shuffleOrderModal) {
                 shuffleOrderModal.style.display = 'none';
-            });
-
-            window.addEventListener('click', (event) => {
-                if (event.target == shuffleOrderModal) {
-                    shuffleOrderModal.style.display = 'none';
-                }
-            });
-
-            const closeShuffleComparisonModal = document.getElementById('closeShuffleComparisonModal');
-            if (closeShuffleComparisonModal) {
-            closeShuffleComparisonModal.addEventListener('click', () => {
-                shuffleComparisonModal.style.display = 'none';
-            });
             }
-
-            window.addEventListener('click', (event) => {
-                if (event.target == shuffleComparisonModal) {
-                    shuffleComparisonModal.style.display = 'none';
-                }
-            });
+        });
             
         });
 

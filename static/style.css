@@ -6,6 +6,7 @@
     --light-card-background: #282828;
     --text-color-primary: #FFFFFF;
     --text-color-secondary: #B3B3B3;
+    --button-disabled: #062e14;
     --border-color: #333333;
     --accent-blue: #007bff;
     /* For initializing state */
@@ -132,6 +133,12 @@ h1 {
     background-color: rgba(255, 165, 0, 0.15);
     border-left: 5px solid #FFA500;
     color: #FFD700;
+}
+
+.status-error {
+    background-color: rgba(255, 21, 0, 0.15);
+    border-left: 5px solid #ff0000;
+    color: var(--error-color);
 }
 
 #queue-data {
@@ -448,6 +455,7 @@ h1 {
     padding-top: 60px;
 }
 
+/* General modal content styles */
 .modal-content {
     background-color: var(--card-background);
     margin: 5% auto;
@@ -460,11 +468,10 @@ h1 {
     animation: fadeIn 0.5s ease-out;
 }
 
-/* Specific styling for the Shuffle Comparison Modal */
-#shuffleComparisonModal .modal-content {
-    max-width: 90%; /* Wider than general modal */
-    width: 800px; /* Fixed width for the comparison modal */
-    padding: 30px; /* Keep consistent padding */
+#shuffleOrderModal .modal-content {
+    width: fit-content; /* Make modal content as wide as its content (columns) */
+    max-width: 90vw; /* Limit the maximum width to 90% of viewport width */
+    margin: 5% auto; /* Keep it centered */
 }
 
 @keyframes fadeIn {
@@ -578,7 +585,7 @@ h1 {
 }
 
 /* Highlight for selected track within patterns */
-.pattern-column li.selected-track-in-pattern {
+.highlight-track {
     font-weight: 700;
     color: var(--text-color-primary);
     background-color: rgba(30, 215, 96, 0.2);
@@ -620,8 +627,7 @@ h1 {
 }
 
 /* Buttons within dropdowns */
-.view-order-btn,
-.view-compare-order-btn {
+.view-order-btn {
     background-color: var(--primary-green);
     color: var(--dark-background);
     border: none;
@@ -639,10 +645,18 @@ h1 {
     /* Prevent text wrapping */
 }
 
-.view-order-btn:hover,
-.view-compare-order-btn:hover {
-    background-color: #1DB954;
+.view-order-btn:hover {
+    background-color: var(--primary-green);
     transform: translateY(-1px);
+}
+
+.view-order-btn:disabled {
+    background-color: var(--button-disabled); /* Add this variable to your theme or replace with a gray color */
+    color: var(--text-color-secondary);
+    cursor: not-allowed;
+    opacity: 0.6;
+    box-shadow: none;
+    transform: none;
 }
 
 /* Shuffle Comparison Controls */
@@ -672,38 +686,25 @@ h1 {
 
 /* Shuffle Order List (reused for both single and comparison modals) */
 .shuffle-order-list {
-    list-style-type: decimal; /* Decimal numbering for the list items */
-    padding-left: 25px; /* Indentation for numbers */
     color: var(--text-color-primary);
     max-height: 400px; /* Max height before scroll */
     overflow-y: auto; /* Add scrollbar if content exceeds max-height */
     margin-top: 20px; /* Space from the title/header */
     background-color: #2b2b2b; /* Background for the list container */
     border-radius: 8px;
-    padding: 15px 25px; /* Padding inside the list container */
     border: 1px solid var(--border-color); /* Border around the list container */
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2); /* Inner shadow for depth */
 }
 
 .shuffle-order-list li {
-    padding: 5px 0;
+    padding: 7px;
+    list-style-type: none; /* Decimal numbering for the list items */
     border-bottom: 1px dashed var(--border-color-light);
     font-size: 0.95em;
 }
 
 .shuffle-order-list li:last-child {
     border-bottom: none;
-}
-
-/* Highlight track in shuffle order list */
-.shuffle-order-list li.highlight-track {
-    background-color: rgba(30, 215, 96, 0.2);
-    /* Lighter green highlight */
-    color: var(--primary-green);
-    font-weight: 700;
-    padding: 5px 8px;
-    border-radius: 4px;
-    margin: 2px 0;
 }
 
 /* Shuffle Comparison Container - Adjusted for better layout */
@@ -716,13 +717,11 @@ h1 {
 }
 
 .shuffle-order-column {
-    flex: 1; /* Allows columns to grow and shrink, taking equal space */
-    min-width: 350px; /* Ensures columns don't get too narrow, adjusted for content */
-    /* Removed redundant styling here. The styling for the list itself
-       comes from .shuffle-order-list directly. */
-    display: flex; /* Use flexbox to stack h3 and ul */
+    flex: 1 1 350px;  /* grow, shrink, basis */
+    min-width: 350px;
+    display: flex;
     flex-direction: column;
-    align-items: center; /* Center content horizontally within the column */
+    align-items: center;
 }
 
 .shuffle-order-column h3 {
@@ -732,9 +731,6 @@ h1 {
     margin-bottom: 15px; /* Space below title */
     font-size: 1.2em;
 }
-
-/* Removed `.shuffle-order-column .shuffle-order-list` overrides
-   to ensure consistency with the single modal's list styling. */
 
 .error-message {
     color: var(--error-color);
@@ -829,12 +825,6 @@ h1 {
         align-items: stretch;
     }
 
-    /* Responsive adjustments for compare modal */
-    .shuffle-order-comparison-container {
-        flex-direction: column; /* Stacks columns vertically on smaller screens */
-        align-items: center; /* Centers the columns when stacked */
-    }
-
     .shuffle-order-column {
         width: 100%; /* Full width when stacked */
         max-width: 400px; /* Prevents them from being too wide on narrow screens */
@@ -842,18 +832,10 @@ h1 {
         min-width: unset; /* Allow full width on small screens */
     }
 
-    #shuffleComparisonModal .modal-content {
-        width: 95%;
-        max-width: unset; /* Remove max-width on smaller screens */
+    #shuffleOrderModal .modal-content {
+        max-width: 90%; /* Keep as 90% for responsiveness on smaller screens */
+        padding: 30px;
     }
-}
-
-.shuffle-control-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 10px;
-    flex-wrap: wrap;
 }
 
 .shuffle-pair {
@@ -862,11 +844,121 @@ h1 {
     flex-wrap: wrap;
 }
 
-.shuffle-control-row select {
-    flex: 1;
-    min-width: 150px;
+/* Styling for the shuffle-id-multiselect to match stat-list */
+.shuffle-id-multiselect {
+    width: 75%;
+    height: auto;
+    min-height: 100px;
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: #2b2b2b;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+    color: var(--text-color-primary);
+    font-size: 0.95em;
+    padding: 10px;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
 }
 
-.shuffle-control-row .btn {
-    flex-shrink: 0;
+.shuffle-control-row {
+    width: 100%;
+    display: flex; /* Use flexbox to align items in a row */
+    align-items: stretch; /* Make items stretch to the same height */
+    gap: 10px; /* Space between the select and the button */
+    margin-top: 15px; /* Add some top margin for separation */
+}
+
+.shuffle-control-row .shuffle-id-multiselect {
+    flex-grow: 1; 
+    width: auto;
+    margin-bottom: 0; 
+    height: auto;
+}
+
+.shuffle-control-row .view-order-btn {
+    flex-shrink: 0; /* Prevent the button from shrinking */
+    height: auto; /* Allow height to be determined by content or flex stretch */
+    margin: 0; /* Remove default button margins */
+    align-self: center; /* Center vertically if needed, but 'stretch' should handle it */
+    padding: 8px 20px; /* Adjust padding to visually match select height */
+}
+
+
+/* pagniation controls and search */
+.search-and-pagination-controls {
+    display: flex;
+    flex-wrap: wrap; /* Allows wrapping on smaller screens */
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 15px; /* Space between items */
+}
+
+#track-search-input {
+    flex-grow: 1; /* Allows input to take available space */
+    padding: 10px 15px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background-color: var(--light-card-background);
+    color: var(--text-color-primary);
+    font-size: 1em;
+    outline: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+#track-search-input::placeholder {
+    color: var(--text-color-secondary);
+}
+
+#track-search-input:focus {
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 3px rgba(30, 215, 96, 0.3);
+}
+
+#track-search-input:disabled {
+    background-color: var(--card-background);
+    color: #555555;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pagination-controls button {
+    /* Reusing .btn styles for pagination buttons, but making them smaller/more compact */
+    padding: 8px 15px; /* Smaller padding */
+    border-radius: 50px; /* Rounded corners */
+    font-weight: 600; /* Slightly less bold than main buttons */
+    font-size: 0.9em;
+    background-color: var(--light-card-background);
+    color: var(--text-color-primary);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.pagination-controls button:hover:not([disabled]) {
+    background-color: var(--border-color);
+    transform: translateY(-1px);
+}
+
+.pagination-controls button[disabled] {
+    background-color: var(--card-background);
+    color: #555555;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+#page-info {
+    color: var(--text-color-secondary);
+    font-size: 0.9em;
+    min-width: 80px; /* Ensure space for page info text */
+    text-align: center;
 }

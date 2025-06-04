@@ -15,8 +15,8 @@ class TracksInContext:
 
 load_dotenv()
 
-stored_tracks = {}
 artist_genres_cache = {}
+stored_tracks = {}
 track_trie = TrackTrie()
 num_shuffles = 0
 MAX_TRACKS_TO_SEND = 50 # This will be the default limit when tracking is active
@@ -34,12 +34,21 @@ def reset():
 
     global stored_tracks
     global artist_genres_cache
+    global track_trie
+    global num_shuffles
+
     stored_tracks = {}
-    artist_genres_cache = {} # Reset cache when data is reset
+    artist_genres_cache = {} 
+    del track_trie
+    track_trie = TrackTrie()
+    num_shuffles = 0
     
     # Clear session-specific tracking variables
     if 'unshuffledkeys' in session:
         del session['unshuffledkeys']
+
+    if 'current_song_id' in session:
+        del session['current_song_id']
 
 # Dedicated endpoint for the "Reset Data" button/link
 @app.route('/reset')
@@ -65,7 +74,7 @@ def index():
     if logged_in:
         # For initial load, always get the first page of data.
         # If tracking is active, this will be the top 50, otherwise the first 100.
-        initial_queue_data = get_queue_data_json(offset=0, limit=MAX_TRACKS_TO_SEND).json 
+        initial_queue_data = get_queue_data_json(offset=0, limit=MAX_TRACKS_TO_SEND)
 
     return render_template('index.html',
                            running=session.get('running', False),
@@ -124,8 +133,6 @@ def toggle():
 
     # Initialize playback_info for the response
     playback_info = {
-        'is_playing': False,
-        'device_name': 'N/A',
         'item_name': 'N/A',
         'item_artist': 'N/A'
     }
@@ -140,41 +147,34 @@ def toggle():
     if new_running_state:
         try:
             current_playback = sp.current_playback()
+            if current_playback:
+                # Populate playback_info for the response from current_playback
+                playback_info['item_name'] = current_playback.get('item', {}).get('name')
+                playback_info['item_artist'] = ", ".join([a['name'] for a in current_playback.get('item', {}).get('artists', [])])
 
-            # If no active device or no item playing, cannot start tracking
-            if not current_playback or not current_playback.get('is_playing') or not current_playback.get('item'):
-                session['running'] = False # Revert running state if setup fails
-                return jsonify({"status": "error", "error": "Please start playing a song on a Spotify device to allow tracking."}), 400
+                # store the current song so we can check when it changes
+                session['current_song_id'] = current_playback.get('item', {}).get('id')
 
-            # Populate playback_info for the response from current_playback
-            playback_info['is_playing'] = current_playback.get('is_playing', False)
-            playback_info['device_name'] = current_playback.get('device', {}).get('name', 'Unknown Device')
-            playback_info['item_name'] = current_playback.get('item', {}).get('name')
-            playback_info['item_artist'] = ", ".join([a['name'] for a in current_playback.get('item', {}).get('artists', [])])
+                # Populate context_info
+                if current_playback.get('context'):
+                    context_type = current_playback['context']['type']
+                    context_id = current_playback['context']['uri'].split(':')[-1]
+                    context_info['type'] = context_type
 
-            # store the current song so we can check when it changes
-            session['current_song_id'] = current_playback.get('item', {}).get('id')
-
-            # Populate context_info
-            if current_playback.get('context'):
-                context_type = current_playback['context']['type']
-                context_id = current_playback['context']['uri'].split(':')[-1]
-                context_info['type'] = context_type
-
-                if context_type == 'album':
-                    context = sp.album(context_id)
-                    context_info['owner_name'] = context['artists'][0]['name'] if context['artists'] else None
-                    context_info['total_tracks'] = context['total_tracks']
-                elif context_type == 'playlist':
-                    context = sp.playlist(context_id)
-                    context_info['owner_name'] = context['owner']['display_name']
-                    context_info['total_tracks'] = context['tracks']['total']
-                elif context_type == 'artist':
-                    context = sp.artist(context_id)
-                
-                if context:
-                    context_info['name'] = context['name']
-                    context_info['image_url'] = context['images'][0]['url'] if context['images'] else None
+                    if context_type == 'album':
+                        context = sp.album(context_id)
+                        context_info['owner_name'] = context['artists'][0]['name'] if context['artists'] else None
+                        context_info['total_tracks'] = context['total_tracks']
+                    elif context_type == 'playlist':
+                        context = sp.playlist(context_id)
+                        context_info['owner_name'] = context['owner']['display_name']
+                        context_info['total_tracks'] = context['tracks']['total']
+                    elif context_type == 'artist':
+                        context = sp.artist(context_id)
+                    
+                    if context:
+                        context_info['name'] = context['name']
+                        context_info['image_url'] = context['images'][0]['url'] if context['images'] else None
 
             sp.shuffle(False) # Unshuffle
             time.sleep(2.5)
@@ -206,19 +206,29 @@ def get_queue_data_json(offset=0, limit=MAX_TRACKS_TO_SEND, search_query=""):
         filtered_tracks = list(stored_tracks.values())
 
     filtered_tracks.sort(key=lambda x: x['frequency'], reverse=True)
-
     total_unique_tracks = len(filtered_tracks)
     total_plays_counted = sum(t['frequency'] for t in filtered_tracks)
 
     # Apply pagination
     paginated_tracks = filtered_tracks[offset:offset + limit]
 
-    return jsonify(
-        queue=paginated_tracks,
-        total_unique_tracks=total_unique_tracks,
-        total_plays_counted=total_plays_counted,
-        has_more= (offset + limit) < total_unique_tracks # Indicate if there are more tracks
-    )
+    # finds all the songs that have patterns
+    tracks_with_patterns_ids = track_trie.getAllTracksWithPatterns()
+    tracks_with_patterns = []
+    for track_id in tracks_with_patterns_ids:
+        track_info = stored_tracks.get(track_id)
+        tracks_with_patterns.append({
+            'name': track_info['name'],
+            'artists': [{"name": artist['name']} for artist in track_info['artists']]
+        })
+
+    return {
+        'queue': paginated_tracks,
+        'total_unique_tracks': total_unique_tracks,
+        'total_plays_counted': total_plays_counted,
+        'tracks_with_patterns': tracks_with_patterns,
+        'has_more': (offset + limit) < total_unique_tracks, # Indicate if there are more tracks
+    }
 
 @app.route('/queue_data')
 def queue_data_endpoint():
@@ -235,7 +245,6 @@ def queue_data_endpoint():
         global num_shuffles
 
         try:
-                
             sp.shuffle(False)
             
             queue_data = sp.queue()
@@ -319,14 +328,23 @@ def queue_data_endpoint():
         track_trie.addShuffleQueue(tracks_deque, num_shuffles)
         num_shuffles += 1
 
+        currently_playing = queue_data['currently_playing']
+        currently_playing_data = {
+            'item_name': queue_data['currently_playing'].get('name', 'Unknown Track'),
+            'item_artist': ", ".join([a['name'] for a in currently_playing.get('artists', [])])
+        }
+
+        queue_data_json = get_queue_data_json()
+        queue_data_json['currently_playing'] = currently_playing_data
+    
         # Now get the data for the frontend based on the enforced limit
-        return get_queue_data_json()
+        return jsonify(queue_data_json)
 
     else:
         limit = request.args.get('limit', type=int, default=MAX_TRACKS_TO_SEND)
         offset = request.args.get('offset', type=int, default=0)
         search_query = request.args.get('search', type=str, default="")
-        return get_queue_data_json(offset, limit, search_query)
+        return jsonify(get_queue_data_json(offset, limit, search_query))
 
 
 @app.route('/track_stats/<string:track_id>')
@@ -406,8 +424,8 @@ def track_stats_endpoint(track_id):
 
         try:
             unique_patterns = {}
-            patterns = track_trie.findAllPatterns(track_id)
-            for pattern_track_ids in patterns.values():
+            patterns = track_trie.getAllPatterns(track_stats['shuffle_ids'])
+            for pattern_track_ids in patterns:
                 if not pattern_track_ids or len(pattern_track_ids) < 2:
                     continue
                 

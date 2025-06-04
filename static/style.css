@@ -367,14 +367,7 @@ h1 {
     font-weight: 500;
 }
 
-/* Specific adjustments for rows with lists (like artist breakdown, genre match) */
-.track-details-content .stat-row[style*="flex-direction: column"] {
-    align-items: flex-start; /* Revert to flex-start for column layouts */
-    margin-bottom: 20px; /* More space for multi-line content */
-    padding-bottom: 10px;
-}
-
-.track-details-content .stat-list {
+.stat-list {
     list-style-type: none;
     padding-left: 0;
     margin-top: 10px; /* Space from the label above it */
@@ -389,21 +382,21 @@ h1 {
     box-sizing: border-box; /* Include padding and border in the element's total width */
 }
 
-.track-details-content .stat-list li {
+.stat-list li {
     padding: 8px 12px; /* Increased padding for list items */
     font-size: 0.9em;
     border-bottom: 1px solid #3a3a3a;
 }
 
-.track-details-content .stat-list li:last-child {
+.stat-list li:last-child {
     border-bottom: none;
 }
 
-.track-details-content .stat-list li:hover {
+.stat-list li:hover {
     background-color: #383838;
 }
 
-.track-details-content .nested-stat-list {
+.nested-stat-list {
     list-style-type: disc;
     padding-left: 20px;
     margin-top: 8px; /* Adjusted margin for nested lists */
@@ -414,7 +407,7 @@ h1 {
     overflow-y: visible;
 }
 
-.track-details-content .nested-stat-list li {
+.nested-stat-list li {
     padding: 4px 0; /* Adjusted padding for nested list items */
     border-bottom: none;
     font-size: 0.88em; /* Slightly smaller font for nested items */
@@ -687,6 +680,7 @@ h1 {
 /* Shuffle Order List (reused for both single and comparison modals) */
 .shuffle-order-list {
     color: var(--text-color-primary);
+    flex: 1 1 350px;  /* grow, shrink, basis */
     max-height: 400px; /* Max height before scroll */
     overflow-y: auto; /* Add scrollbar if content exceeds max-height */
     margin-top: 20px; /* Space from the title/header */

@@ -14,6 +14,8 @@ class TrackTrie:
     def __init__(self):
         self.trackNodes = {}
         self.numShuffles = 0
+        self.allPatterns = {}
+        self.allTracksWithPatterns = set()
 
     def addTrack(self, trackID, nextID, prevID, shuffleID):
         if trackID not in self.trackNodes:
@@ -24,6 +26,17 @@ class TrackTrie:
 
         self.numShuffles = max(self.numShuffles, shuffleID)
 
+    def getAllPatterns(self, shuffleIDs):
+        res = []
+
+        for shuffleID in shuffleIDs:
+            if shuffleID in self.allPatterns:
+                res.append(self.allPatterns[shuffleID])
+                
+        return res
+
+    def getAllTracksWithPatterns(self):
+        return self.allTracksWithPatterns
         
     def findAllPatterns(self, trackID):
         getPrevTrack = lambda curTrackID, shuffleID: self.trackNodes[curTrackID].prev.get(shuffleID, "")
@@ -38,11 +51,17 @@ class TrackTrie:
         prevPatterns = self.findPatterns(trackID, getPrevTrack, addToPatternPrev, shuffleIDs)
         nextPatterns = self.findPatterns(trackID, getNextTrack, addToPatternNext, shuffleIDs)
 
-        res = {}
         for shuffleID in shuffleIDs:
-            res[shuffleID] = list(prevPatterns[shuffleID])[:-1] + list(nextPatterns[shuffleID])
+            prev = list(prevPatterns.get(shuffleID, []))[:-1]
+            next = list(nextPatterns.get(shuffleID, []))
+            self.allPatterns[shuffleID] = prev + next
 
-        return res
+            # Helps in finding songs with patterns from the frontend
+            if len(self.allPatterns[shuffleID]) > 1:
+                for patternTrackID in self.allPatterns[shuffleID]:
+                    self.allTracksWithPatterns.add(patternTrackID)
+
+        return self.allPatterns
         
     def findPatterns(self, trackID, getNextTrack, addToPattern, shuffleIDs):
         shuffleIDToPattern = {}
@@ -94,7 +113,9 @@ class TrackTrie:
     def addShuffleQueue(self, q:deque, shuffleID):
         if len(q) == 0:
             return
-
+        
+        trackIDs = list(q)
+        
         prev = ""
         cur = q.popleft()
 
@@ -106,6 +127,10 @@ class TrackTrie:
             cur = next
 
         self.addTrack(cur, "", prev, shuffleID)
+
+        # only need to check a third of the tracks since each track searches left and right of themselves
+        for i in range(0, len(trackIDs) - 1, 3):
+            self.findAllPatterns(trackIDs[i])
 
     def getShuffleQueue(self, shuffleID, trackID):
         q = deque()
@@ -128,9 +153,6 @@ class TrackTrie:
         return [key for key in self.trackNodes[trackID].prev]
 
     def __str__(self):
-        """
-        Returns a string representation of the entire TrackTrie.
-        """
         if not self.trackNodes:
             return "Track Map is empty."
 
@@ -140,6 +162,8 @@ class TrackTrie:
             map_string_parts.append(f"  {node}") 
             map_string_parts.append("-" * 20)
         map_string_parts.append("-----------------------")
+        map_string_parts.append("All trackIDs with patterns")
+        map_string_parts.append(str(self.allTracksWithPatterns))
         return "\n".join(map_string_parts)
 
 if __name__=="__main__":
@@ -151,9 +175,8 @@ if __name__=="__main__":
     tracks.addShuffleQueue(deque(["X","D","B","E","C","A","P"]), 4)
 
     print(tracks.getShuffleQueue(4, "B"))
-
     print(tracks)
-    tracks.findAllPatterns("C")
+    print(str(tracks.allPatterns))
     
 # Do each side separate
     # go left
@@ -161,3 +184,8 @@ if __name__=="__main__":
     # go right
     #     each shuffle index keeps track of their best and how many matched
     # combine the left and right for each shuffle
+
+
+# we get a new shuffle queue
+    # need to find and store all of it's patterns
+    # don't need to redo work that was already done, so check the

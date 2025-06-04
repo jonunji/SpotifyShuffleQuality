@@ -17,14 +17,16 @@
             <p>The tool works by constantly reshuffling your active queue and recording the data.</p>
             <p>To get the most accurate information, please follow these instructions:</p>
             <ul>
-                <li><strong>Keep Spotify playing:</strong> Ensure Spotify is actively playing music on a connected
+                <li><strong>Play Something:</strong> You may need to play something to initiate tracking. After tracking
+                    has started, you can pause or continue your media.</li>
+                <li><strong>Keep Spotify open:</strong> Ensure Spotify is open on a connected
                     device. This is needed for continuous calls to Spotify's servers.</li>
                 <li><strong>Clear Your Queue:</strong> Checks are made to determine if the list has been shuffled. Songs
                     in the queue do not change, so this disrupts that check.</li>
                 <li><strong>Play inside a playlist/album:</strong> To see statistics about a specific playlist or album
                     you're interested in, make sure to play music from where you're interested.</li>
             </ul>
-            <p>We'll then analyze how songs are added to your queue as you listen!</p>
+            <p>We'll then analyze how songs are added to your queue.</p>
             <button id="modal-understood-button" class="btn">Understood!</button>
         </div>
     </div>
@@ -52,13 +54,9 @@
         </div>
 
         {% if logged_in %}
-        <div id="status-container" class="status {% if running %}status-active{% else %}status-inactive{% endif %}">
+        <div id="status-container" class="status status-inactive">
             <p id="status-text">
-                {% if running %}
-                Queue tracking is <strong>active</strong>. We're automatically analyzing your Spotify queue.
-                {% else %}
                 Queue tracking is <strong>inactive</strong>. Click the button below to start tracking.
-                {% endif %}
             </p>
         </div>
 
@@ -73,7 +71,6 @@
         <div class="stats-grid">
             <div class="stat-box">
                 <h3>Current Playback</h3>
-                <p>Device: <span id="playback-device" class="stat-value">N/A</span></p>
                 <p>Song: <span id="playback-item-name" class="stat-value">N/A</span></p>
                 <p>Artist: <span id="playback-item-artist" class="stat-value">N/A</span></p>
             </div>
@@ -94,6 +91,22 @@
                 </div>
                 <p id="no-context-message" style="display: none;">No active context found or playing item is not from a
                     known context (e.g., local file, individual track).</p>
+            </div>
+            <div class="stat-box" style="grid-column: 1 / -1;">
+                <h3>Tracks with Patterns</h3>
+                <div style="flex-direction: column; align-items: flex-start;">
+                    <ul id="all-patterns-list" class="stat-list">
+                        {% if initial_queue_data and initial_queue_data.tracks_with_patterns %}
+                        {% for track in initial_queue_data.tracks_with_patterns %}
+                        <li class="track-item">
+                            <strong>{{ track.name }}</strong> - {{ track.artists | map(attribute='name') | join(', ') }}
+                        </li>
+                        {% endfor %}
+                        {% else %}
+                        <li>No patterns found yet. Start tracking to see patterns.</li>
+                        {% endif %}
+                    </ul>
+                </div>
             </div>
         </div>
 
@@ -139,7 +152,6 @@
         const noTracksMessage = document.getElementById('no-tracks-message');
 
         // Playback Info Elements
-        const playbackDevice = document.getElementById('playback-device');
         const playbackItemName = document.getElementById('playback-item-name');
         const playbackItemArtist = document.getElementById('playback-item-artist');
 
@@ -155,6 +167,9 @@
         const contextName = document.getElementById('context-name');
         const contextOwnerTotal = document.getElementById('context-owner-total');
         const noContextMessage = document.getElementById('no-context-message');
+
+        // All patterns list
+        const allPatternsList = document.getElementById('all-patterns-list');
 
         // Modal elements
         const instructionModal = document.getElementById('instructionModal');
@@ -192,6 +207,26 @@
                 currentPage = 0; // Reset pagination when tracking starts
                 currentSearchQuery = '';
                 trackSearchInput.value = ''; // Clear search input
+            }
+        }
+
+        function updateAllPatternsList(tracksWithPatterns) {
+
+            allPatternsList.innerHTML = '';
+
+            if (tracksWithPatterns && tracksWithPatterns.length > 0) {
+                // Use map to create an array of HTML strings for each track
+                allPatternsList.innerHTML = tracksWithPatterns.map(track => {
+                    const artists = track.artists.map(a => a.name).join(', ');
+                    return `
+                    <li class="track-item">
+                        <strong>${track.name}</strong> ${artists}
+                    </li>
+                `;
+                }).join(''); // Join all HTML strings into one single string
+
+            } else {
+                allPatternsList.innerHTML = '<li>No patterns found yet.</li>';
             }
         }
 
@@ -291,6 +326,39 @@
             }
         }
 
+        function formatGroupedTracksByArtist(groupedData, getArtistId, getArtistName) {
+            return Object.keys(groupedData).map(artistId => {
+                const tracksForArtist = groupedData[artistId];
+
+                if (!Array.isArray(tracksForArtist) || tracksForArtist.length === 0) return '';
+
+                const artistName = getArtistName(tracksForArtist, artistId) || 'Unknown Artist';
+
+                const trackItems = tracksForArtist.map(track => {
+                    return `<li>${track.name} (${track.frequency} plays)</li>`;
+                }).join('');
+
+                return `
+                    <li>
+                        <strong>${artistName}</strong> (${tracksForArtist.length} track${tracksForArtist.length !== 1 ? 's' : ''}):
+                        <ul class="nested-stat-list">
+                            ${trackItems}
+                        </ul>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        function formatStatBlock(title, listHtml) {
+            return `
+                <div class="stat-row" style="flex-direction: column; align-items: flex-start;">
+                    <span class="stat-label" style="margin-bottom: 5px;">${title}</span>
+                    <ul class="stat-list">
+                        ${listHtml}
+                    </ul>
+                </div>`;
+        }
+
         function updateIndividualTrackStats(stats, dropdownElement, selected_track_id) {
             const artists = stats.artists.map(a => a.name).join(', ') || 'N/A';
             const durationMinutes = Math.floor(stats.duration_ms / 60000);
@@ -302,36 +370,15 @@
 
             let artistBreakdownHtml = '';
             if (typeof stats.songs_by_same_artists === 'object' && Object.keys(stats.songs_by_same_artists).length > 0) {
-                const artistListItems = Object.keys(stats.songs_by_same_artists).map(artistId => {
-                    const tracksForArtist = stats.songs_by_same_artists[artistId];
+                const artistListItems = formatGroupedTracksByArtist(
+                    stats.songs_by_same_artists,
+                    // Get artistId directly
+                    (tracks, id) => id,
+                    // Get artist name from the track's artist array
+                    (tracks, id) => tracks[0].artists.find(a => String(a.id) === String(id))?.name
+                );
 
-                    if (!Array.isArray(tracksForArtist) || tracksForArtist.length === 0) {
-                        return '';
-                    }
-
-                    const artistName = tracksForArtist[0].artists.find(a => String(a.id) === String(artistId))?.name || 'Unknown Artist';
-
-                    const trackItems = tracksForArtist.map(track => {
-                        return `<li>${track.name} (${track.frequency} plays)</li>`;
-                    }).join('');
-
-                    return `
-                        <li>
-                            <strong>${artistName}</strong> (${tracksForArtist.length} track${tracksForArtist.length !== 1 ? 's' : ''}):
-                            <ul class="nested-stat-list">
-                                ${trackItems}
-                            </ul>
-                        </li>
-                    `;
-                }).join('');
-
-                artistBreakdownHtml = `
-                    <div class="stat-row" style="flex-direction: column; align-items: flex-start;">
-                        <span class="stat-label" style="margin-bottom: 5px;">Breakdown by Matching Artists:</span>
-                        <ul class="stat-list">
-                            ${artistListItems}
-                        </ul>
-                    </div>`;
+                artistBreakdownHtml = formatStatBlock('Breakdown by Matching Artists:', artistListItems);
             } else {
                 artistBreakdownHtml = `
                     <div class="stat-row">
@@ -341,17 +388,24 @@
             }
 
             let genreMatchHtml = '';
-            if (stats.songs_matching_genre && stats.songs_matching_genre.length > 0) {
-                genreMatchHtml = `
-                    <div class="stat-row" style="flex-direction: column; align-items: flex-start;">
-                        <span class="stat-label" style="margin-bottom: 5px;">Songs Matching Genres:</span>
-                        <ul class="stat-list">
-                            ${stats.songs_matching_genre.map(t => {
-                    const artists = t.artists.map(a => a.name).join(', ');
-                    return `<li><strong>${artists}</strong>: ${t.name} (${t.frequency} plays)</li>`;
-                }).join('')}
-                        </ul>
-                    </div>`;
+            if (Array.isArray(stats.songs_matching_genre) && stats.songs_matching_genre.length > 0) {
+                // First, group by artist name
+                const genreGroupedByArtist = {};
+                for (const track of stats.songs_matching_genre) {
+                    for (const artist of track.artists) {
+                        const artistName = artist.name || 'Unknown Artist';
+                        if (!genreGroupedByArtist[artistName]) genreGroupedByArtist[artistName] = [];
+                        genreGroupedByArtist[artistName].push(track);
+                    }
+                }
+
+                const genreListItems = formatGroupedTracksByArtist(
+                    genreGroupedByArtist,
+                    (tracks, artistName) => artistName,
+                    (tracks, artistName) => artistName
+                );
+
+                genreMatchHtml = formatStatBlock('Songs Matching Genres:', genreListItems);
             } else {
                 genreMatchHtml = `
                     <div class="stat-row">
@@ -551,6 +605,7 @@
             totalPlaysCounted.textContent = data.total_plays_counted || 0;
             totalTracksShown.textContent = data.queue.length
             hasMoreTracks = data.has_more;
+            console.log(hasMoreTracks)
 
             if (totalUniqueTracks.textContent == 0 && totalPlaysCounted.textContent == 0) {
                 return;
@@ -563,7 +618,6 @@
         }
 
         function updatePlaybackInfoDisplay(info) {
-            playbackDevice.textContent = info.device_name || 'N/A';
             playbackItemName.textContent = info.item_name || 'N/A';
             playbackItemArtist.textContent = info.item_artist || 'N/A';
         }
@@ -640,11 +694,6 @@
                         } else if (data.error.includes("Please start playing a song") || data.error.includes("Tracking setup incomplete") || data.error.includes("No active Spotify device found")) {
                             stopTracking(data.error);
                         }
-                    } else {
-                        renderTracks(data.queue);
-                        updateQueueAndOverallStats(data);
-                        // Pagination controls are always disabled when tracking
-                        updatePaginationControls();
                     }
                 }
             }
@@ -658,7 +707,14 @@
 
                 renderTracks(data.queue);
                 updateQueueAndOverallStats(data);
-                updatePaginationControls();
+                updateAllPatternsList(data.tracks_with_patterns);
+                updatePaginationControls()
+
+                // Update the playback info if we have valid data while updating the queue
+                // Otherwise, it'll be updated whenever the user starts tracking
+                if (data.currently_playing) {
+                    updatePlaybackInfoDisplay(data.currently_playing);
+                }
             }
         }
 
@@ -695,9 +751,9 @@
                         dropdown.closest('.track-item').classList.remove('active');
                         dropdown.innerHTML = '';
                     });
-
-                    updatePaginationControls(true);
+                    
                     fetchQueueData();
+                    updatePaginationControls(true);
                 } else {
                     isTracking = false;
                     updateToggleButtonAndStatus();
@@ -717,17 +773,17 @@
         async function stopTracking(errorMessage = "") {
             isTracking = false;
             isInitializing = false;
-
+            
             try {
                 const response = await fetch('/toggle', { method: 'POST' });
                 const data = await response.json();
 
                 if (errorMessage) {
-                    statusText.innerHTML = 'Queue tracking is <strong>inactive</strong>. Playback paused or no active device/song.';
+                    statusText.innerHTML = 'Queue tracking is <strong>inactive</strong>.', errorMessage;
                     statusContainer.className = 'status status-error';
                 }
 
-                if (data.status === 'stopped') {
+                else if (data.status === 'stopped') {
                     statusText.innerHTML = 'Queue tracking is <strong>inactive</strong>. Click the button below to start tracking.';
                     statusContainer.className = 'status status-inactive';
                 } else {
@@ -796,7 +852,9 @@
 
 
         document.addEventListener('DOMContentLoaded', () => {
-            updateToggleButtonAndStatus();
+            isTracking = false
+            isInitializing = false
+            updateToggleButtonAndStatus()
             const initialContextInfo = {{ initial_context_info| tojson
         }};
         if (Object.keys(initialContextInfo).length > 0) {

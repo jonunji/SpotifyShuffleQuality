@@ -12,26 +12,75 @@
     /* For initializing state */
     --error-color: #FF6347;
     /* A clear error red */
-    --shadow: 0 8px 24px rgba(0, 0, 0, 0.5); /* Define a shadow variable for consistency */
-    --border-color-light: #3e3e3e; /* For dashed borders */
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    /* Define a shadow variable for consistency */
+    --border-color-light: #3e3e3e;
+    /* For dashed borders */
 }
 
 body {
     font-family: 'Montserrat', sans-serif;
     margin: 0;
-    padding: 0;
+    padding: 20px;
+    /* Add padding to the body */
     background-color: var(--dark-background);
     color: var(--text-color-primary);
     min-height: 100vh;
     display: flex;
+    /* Enable flexbox */
+    flex-direction: row;
+    /* Arrange children in a row */
+    align-items: flex-start;
+    /* Align items to the start of the cross axis (top) */
+    width: 100%;
+    /* Ensure body spans full width */
+    box-sizing: border-box;
+    /* Include padding in width */
+    justify-content: center;
+    /* Center content horizontally */
+}
+
+#context-sidebar {
+    width: 400px;
+    /* Initial width for the sidebar */
+    flex-shrink: 0;
+    /* Prevent sidebar from shrinking */
+    padding: 20px;
+    background-color: var(--card-background);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    position: sticky;
+    /* Make the sidebar sticky */
+    top: 20px;
+    /* Stick to the top with some offset */
+    min-height: calc(100vh - 40px);
+    /* Ensure sidebar takes full height minus body padding */
+    box-sizing: border-box;
+    display: flex;
     flex-direction: column;
-    align-items: center;
+}
+
+.resizer {
+    width: 10px;
+    height: calc(100vh - 40px); /* Make it span the height of the sidebar */
+    background-color: var(--light-card-background);
+    cursor: ew-resize;
+    position: sticky;
+    top: 20px; /* Align with sidebar's sticky position */
+    z-index: 10;
+    margin-right: 20px; /* Adjust margin to maintain gap with main-wrapper */
+    border-radius: 12px; /* Match the sidebar's border-radius */
 }
 
 .main-wrapper {
-    width: 100%;
-    max-width: 900px;
-    padding: 20px;
+    flex-grow: 1;
+    /* Allow main content to grow and fill available space */
+    max-width: 1200px;
+    /* Set a max-width for the main content */
+    margin: 0 auto;
+    /* Center the main wrapper within its flexible space */
+    padding: 0;
+    /* Remove padding here as body has it */
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -252,7 +301,7 @@ h1 {
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 20px;
     margin-top: 20px;
 }
@@ -261,6 +310,7 @@ h1 {
     background-color: var(--light-card-background);
     border-radius: 10px;
     padding: 20px;
+    flex:auto;
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
@@ -310,7 +360,8 @@ h1 {
 .track-details-dropdown {
     background-color: #212121;
     border-radius: 8px;
-    padding: 20px; /* Base padding for the dropdown content */
+    padding: 20px;
+    /* Base padding for the dropdown content */
     margin-top: 15px;
     box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
     display: none;
@@ -343,10 +394,14 @@ h1 {
 .track-details-content .stat-row {
     display: flex;
     justify-content: space-between;
-    align-items: center; /* Align items vertically in single-line rows */
-    margin-bottom: 12px; /* Increased spacing between stat rows */
-    padding-bottom: 8px; /* Adjusted padding below the content */
-    border-bottom: 1px dashed var(--border-color-light); /* Consistent dashed border */
+    align-items: center;
+    /* Align items vertically in single-line rows */
+    margin-bottom: 12px;
+    /* Increased spacing between stat rows */
+    padding-bottom: 8px;
+    /* Adjusted padding below the content */
+    border-bottom: 1px dashed var(--border-color-light);
+    /* Consistent dashed border */
     font-size: 0.95em;
 }
 
@@ -370,7 +425,8 @@ h1 {
 .stat-list {
     list-style-type: none;
     padding-left: 0;
-    margin-top: 10px; /* Space from the label above it */
+    margin-top: 10px;
+    /* Space from the label above it */
     margin-bottom: 0;
     color: var(--text-color-secondary);
     max-height: 200px;
@@ -378,12 +434,15 @@ h1 {
     border: 1px solid var(--border-color);
     border-radius: 6px;
     background-color: #2b2b2b;
-    width: 100%; /* Ensure lists take full width within their container */
-    box-sizing: border-box; /* Include padding and border in the element's total width */
+    width: 100%;
+    /* Ensure lists take full width within their container */
+    box-sizing: border-box;
+    /* Include padding and border in the element's total width */
 }
 
 .stat-list li {
-    padding: 8px 12px; /* Increased padding for list items */
+    padding: 8px 12px;
+    /* Increased padding for list items */
     font-size: 0.9em;
     border-bottom: 1px solid #3a3a3a;
 }
@@ -399,18 +458,23 @@ h1 {
 .nested-stat-list {
     list-style-type: disc;
     padding-left: 20px;
-    margin-top: 8px; /* Adjusted margin for nested lists */
+    margin-top: 8px;
+    /* Adjusted margin for nested lists */
     margin-bottom: 8px;
-    background-color: transparent; /* No background for nested list itself */
+    background-color: transparent;
+    /* No background for nested list itself */
     border: none;
-    max-height: unset; /* Nested list shouldn't have its own scroll */
+    max-height: unset;
+    /* Nested list shouldn't have its own scroll */
     overflow-y: visible;
 }
 
 .nested-stat-list li {
-    padding: 4px 0; /* Adjusted padding for nested list items */
+    padding: 4px 0;
+    /* Adjusted padding for nested list items */
     border-bottom: none;
-    font-size: 0.88em; /* Slightly smaller font for nested items */
+    font-size: 0.88em;
+    /* Slightly smaller font for nested items */
 }
 
 /* Flash animation for stat-box */
@@ -455,16 +519,20 @@ h1 {
     padding: 30px;
     border-radius: 12px;
     width: 80%;
-    max-width: 600px; /* General modal width */
+    max-width: 600px;
+    /* General modal width */
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
     position: relative;
     animation: fadeIn 0.5s ease-out;
 }
 
 #shuffleOrderModal .modal-content {
-    width: fit-content; /* Make modal content as wide as its content (columns) */
-    max-width: 90vw; /* Limit the maximum width to 90% of viewport width */
-    margin: 5% auto; /* Keep it centered */
+    width: fit-content;
+    /* Make modal content as wide as its content (columns) */
+    max-width: 90vw;
+    /* Limit the maximum width to 90% of viewport width */
+    margin: 5% auto;
+    /* Keep it centered */
 }
 
 @keyframes fadeIn {
@@ -595,8 +663,9 @@ h1 {
 }
 
 /* Custom dropdown select style */
-.shuffle-id-select {
-    width: 100%;
+.shuffle-id-multiselect {
+    width: 70%;
+    flex-grow: 1;
     padding: 8px 12px;
     border-radius: 6px;
     border: 1px solid var(--border-color);
@@ -605,24 +674,48 @@ h1 {
     font-size: 0.95em;
     appearance: none;
     -webkit-appearance: none;
-    background-image: url('data:image/svg+xml;utf8,<svg fill="%23B3B3B3" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
     background-repeat: no-repeat;
     background-position: right 8px top 50%;
     background-size: 20px auto;
     cursor: pointer;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    box-sizing: border-box; /* Include padding and border in the element's total width */
+    height: unset; /* Allow height to be determined by content or size attribute */
+    overflow-y: auto; /* Enable scrolling for multiple options */
 }
 
-.shuffle-id-select:focus {
+.shuffle-id-multiselect option {
+    padding: 5px 10px; /* Padding for individual options */
+    background-color: var(--light-card-background);
+    color: var(--text-color-primary);
+}
+
+.shuffle-id-multiselect option:checked {
+    background-color: var(--primary-green);
+    color: var(--dark-background);
+}
+
+.shuffle-id-multiselect:focus {
     outline: none;
     border-color: var(--primary-green);
     box-shadow: 0 0 0 2px rgba(30, 215, 96, 0.3);
+}
+
+.shuffle-control-row {
+    display: flex;
+    flex-direction: row; /* Arrange select and button horizontally */
+    align-items: stretch; /* Align items to the top */
+    gap: 15px; /* Space between select and button */
+    margin-top: 15px; /* Space from the label above */
+    width: 100%; /* Take full width of parent */
 }
 
 /* Buttons within dropdowns */
 .view-order-btn {
     background-color: var(--primary-green);
     color: var(--dark-background);
+    height: auto;
+    align-self: center;
     border: none;
     padding: 10px 20px;
     border-radius: 30px;
@@ -631,257 +724,25 @@ h1 {
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.2s ease;
     text-decoration: none;
-    display: block;
-    margin: 10px auto 0 auto;
+    display: flex;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
     white-space: nowrap;
-    /* Prevent text wrapping */
 }
 
 .view-order-btn:hover {
-    background-color: var(--primary-green);
+    background-color: #1DB954;
+    /* Slightly darker green on hover */
     transform: translateY(-1px);
 }
 
 .view-order-btn:disabled {
-    background-color: var(--button-disabled); /* Add this variable to your theme or replace with a gray color */
-    color: var(--text-color-secondary);
+    background-color: var(--button-disabled);
+    /* Reusing button-disabled variable */
     cursor: not-allowed;
-    opacity: 0.6;
-    box-shadow: none;
-    transform: none;
+    opacity: 0.7;
+    transform: translateY(0);
+    /* Disable hover transform */
 }
-
-/* Shuffle Comparison Controls */
-.shuffle-comparison-controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    align-items: flex-end;
-    margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px solid var(--border-color);
-    /* Separator */
-}
-
-.shuffle-select-group {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-width: 200px;
-}
-
-.shuffle-select-group label {
-    font-size: 0.9em;
-    color: var(--text-color-secondary);
-    margin-bottom: 5px;
-}
-
-/* Shuffle Order List (reused for both single and comparison modals) */
-.shuffle-order-list {
-    color: var(--text-color-primary);
-    flex: 1 1 350px;  /* grow, shrink, basis */
-    max-height: 400px; /* Max height before scroll */
-    overflow-y: auto; /* Add scrollbar if content exceeds max-height */
-    margin-top: 20px; /* Space from the title/header */
-    background-color: #2b2b2b; /* Background for the list container */
-    border-radius: 8px;
-    border: 1px solid var(--border-color); /* Border around the list container */
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2); /* Inner shadow for depth */
-}
-
-.shuffle-order-list li {
-    padding: 7px;
-    list-style-type: none; /* Decimal numbering for the list items */
-    border-bottom: 1px dashed var(--border-color-light);
-    font-size: 0.95em;
-}
-
-.shuffle-order-list li:last-child {
-    border-bottom: none;
-}
-
-/* Shuffle Comparison Container - Adjusted for better layout */
-.shuffle-order-comparison-container {
-    display: flex;
-    gap: 20px; /* Space between the columns */
-    justify-content: center; /* Center the two columns */
-    margin-top: 20px;
-    flex-wrap: wrap; /* Allows columns to wrap on smaller screens */
-}
-
-.shuffle-order-column {
-    flex: 1 1 350px;  /* grow, shrink, basis */
-    min-width: 350px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.shuffle-order-column h3 {
-    text-align: center;
-    color: var(--primary-green);
-    margin-top: 0;
-    margin-bottom: 15px; /* Space below title */
-    font-size: 1.2em;
-}
-
-.error-message {
-    color: var(--error-color);
-    text-align: center;
-    padding: 10px;
-    margin-top: 15px;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    h1 {
-        font-size: 2em;
-    }
-
-    .main-wrapper {
-        padding: 15px;
-    }
-
-    .container {
-        padding: 20px;
-    }
-
-    .btn {
-        width: 100%;
-        box-sizing: border-box;
-        margin: 10px 0;
-    }
-
-    .nav-links {
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .track-item {
-        padding: 10px;
-    }
-
-    .track-image {
-        width: 50px;
-        height: 50px;
-        margin-right: 15px;
-    }
-
-    .track-name {
-        font-size: 1em;
-    }
-
-    .track-artist {
-        font-size: 0.85em;
-    }
-
-    .track-frequency {
-        font-size: 1em;
-        padding: 4px 8px;
-    }
-
-    .context-image {
-        width: 70px;
-        height: 70px;
-    }
-
-    .context-details h3 {
-        font-size: 1.1em;
-    }
-
-    .context-details p {
-        font-size: 0.9em;
-    }
-
-    .modal-content {
-        width: 90%;
-        margin: 20px auto;
-        padding: 20px;
-    }
-
-    .modal-content h2 {
-        font-size: 1.5em;
-    }
-
-    .modal-content p,
-    .modal-content ul li {
-        font-size: 0.95em;
-    }
-
-    .shuffle-comparison-controls {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .shuffle-order-column {
-        width: 100%; /* Full width when stacked */
-        max-width: 400px; /* Prevents them from being too wide on narrow screens */
-        margin-bottom: 20px; /* Space between stacked columns */
-        min-width: unset; /* Allow full width on small screens */
-    }
-
-    #shuffleOrderModal .modal-content {
-        max-width: 90%; /* Keep as 90% for responsiveness on smaller screens */
-        padding: 30px;
-    }
-}
-
-.shuffle-pair {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-/* Styling for the shuffle-id-multiselect to match stat-list */
-.shuffle-id-multiselect {
-    width: 75%;
-    height: auto;
-    min-height: 100px;
-    max-height: 200px;
-    overflow-y: auto;
-    background-color: #2b2b2b;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
-    color: var(--text-color-primary);
-    font-size: 0.95em;
-    padding: 10px;
-    appearance: none;
-    -webkit-appearance: none;
-    cursor: pointer;
-}
-
-.shuffle-control-row {
-    width: 100%;
-    display: flex; /* Use flexbox to align items in a row */
-    align-items: stretch; /* Make items stretch to the same height */
-    gap: 10px; /* Space between the select and the button */
-    margin-top: 15px; /* Add some top margin for separation */
-}
-
-.shuffle-control-row .shuffle-id-multiselect {
-    flex-grow: 1; 
-    width: auto;
-    margin-bottom: 0; 
-    height: auto;
-}
-
-.shuffle-control-row .view-order-btn {
-    flex-shrink: 0; /* Prevent the button from shrinking */
-    height: auto; /* Allow height to be determined by content or flex stretch */
-    margin: 0; /* Remove default button margins */
-    align-self: center; /* Center vertically if needed, but 'stretch' should handle it */
-    padding: 8px 20px; /* Adjust padding to visually match select height */
-}
-
-
-/* pagniation controls and search */
 .search-and-pagination-controls {
     display: flex;
     flex-wrap: wrap; /* Allows wrapping on smaller screens */
@@ -950,9 +811,276 @@ h1 {
     opacity: 0.5;
 }
 
-#page-info {
-    color: var(--text-color-secondary);
-    font-size: 0.9em;
-    min-width: 80px; /* Ensure space for page info text */
+/* Styling for context items in the sidebar */
+.context-list {
+    list-style-type: none;
+    padding: 0;
+    margin-top: 15px;
+    flex-grow: 1;
+    /* Allow the list to grow and fill available space */
+    overflow-y: auto;
+    /* Enable scrolling for many contexts */
+}
+
+.context-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border-radius: 8px;
+    /* Slightly rounded corners for list items */
+    margin-bottom: 5px;
+    /* Small gap between items */
+}
+
+.context-item:last-child {
+    border-bottom: none;
+}
+
+.context-item:hover {
+    background-color: #202020;
+}
+
+.context-thumbnail {
+    width: 50px;
+    height: 50px;
+    border-radius: 4px;
+    margin-right: 15px;
+    flex-shrink: 0;
+    overflow: hidden;
+    /* Ensure image fits within bounds */
+    background-color: #333;
+}
+
+.context-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.placeholder-image {
+    width: 100%;
+    height: 100%;
+    background-color: #555;
+    /* Placeholder color for missing images */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #aaa;
+    font-size: 0.8em;
     text-align: center;
+}
+
+.context-item .context-details {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.context-item .context-name {
+    font-weight: 600;
+    color: var(--text-color-primary);
+    font-size: 0.95em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.context-item .context-sub-info {
+    color: var(--text-color-secondary);
+    font-size: 0.8em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#no-contexts-message {
+    text-align: center;
+    color: var(--text-color-secondary);
+    padding: 20px 0;
+    font-size: 0.9em;
+    display: block;
+    /* Default to visible until contexts are loaded */
+}
+
+#no-contexts-message p {
+    margin: 0;
+}
+
+/* Shuffle Order List (reused for both single and comparison modals) */
+.shuffle-order-list {
+    color: var(--text-color-primary);
+    flex: 1 1 350px;
+    /* grow, shrink, basis */
+    max-height: 400px;
+    /* Max height before scroll */
+    overflow-y: auto;
+    /* Add scrollbar if content exceeds max-height */
+    margin-top: 20px;
+    /* Space from the title/header */
+    background-color: #2b2b2b;
+    /* Background for the list container */
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    /* Border around the list container */
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+    /* Inner shadow for depth */
+}
+
+.shuffle-order-list li {
+    padding: 7px;
+    list-style-type: none;
+    /* Decimal numbering for the list items */
+    border-bottom: 1px dashed var(--border-color-light);
+    font-size: 0.95em;
+}
+
+.shuffle-order-list li:last-child {
+    border-bottom: none;
+}
+
+/* Shuffle Comparison Container - Adjusted for better layout */
+.shuffle-order-comparison-container {
+    display: flex;
+    gap: 20px;
+    /* Space between the columns */
+    justify-content: center;
+    /* Center the two columns */
+    margin-top: 20px;
+    flex-wrap: wrap;
+    /* Allows columns to wrap on smaller screens */
+}
+
+.shuffle-order-column {
+    flex: 1 1 350px;
+    /* grow, shrink, basis */
+    min-width: 350px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.shuffle-order-column h3 {
+    text-align: center;
+    color: var(--primary-green);
+    margin-top: 0;
+    margin-bottom: 15px;
+    /* Space below title */
+    font-size: 1.2em;
+}
+
+@media (max-width: 768px) {
+    body {
+        flex-direction: column;
+        /* Stack elements vertically on small screens */
+        padding: 15px;
+    }
+
+    #context-sidebar {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 20px;
+        /* Space below sidebar */
+        min-height: unset;
+        /* Allow sidebar to collapse to content height */
+        position: static;
+        /* Remove sticky position on small screens */
+    }
+
+    .resizer {
+        display: none; /* Hide resizer on small screens */
+    }
+
+    .main-wrapper {
+        max-width: 100%;
+        /* Take full width on small screens */
+    }
+
+    h1 {
+        font-size: 2em;
+    }
+
+    .container {
+        padding: 20px;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        font-size: 1em;
+    }
+
+    .modal-content {
+        width: 90%;
+        padding: 20px;
+    }
+
+    #shuffleOrderModal .modal-content {
+        max-width: 95vw;
+    }
+
+    .pattern-column {
+        min-width: unset;
+        /* Allow columns to be smaller */
+        flex-basis: 100%;
+        /* Stack columns on small screens */
+    }
+
+    .track-main-info {
+        flex-direction: column;
+        /* Stack image and info vertically */
+        align-items: flex-start;
+    }
+
+    .track-image {
+        margin-right: 0;
+        margin-bottom: 10px;
+        /* Space below image */
+    }
+
+    .track-frequency {
+        margin-left: 0;
+        margin-top: 10px;
+        /* Space above frequency */
+        align-self: flex-end;
+        /* Align to the right if needed */
+    }
+
+    .shuffle-order-column {
+        width: 100%;
+        /* Full width when stacked */
+        max-width: 400px;
+        /* Prevents them from being too wide on narrow screens */
+        margin-bottom: 20px;
+        /* Space between stacked columns */
+        min-width: unset;
+        /* Allow full width on small screens */
+    }
+
+    #shuffleOrderModal .modal-content {
+        max-width: 90%;
+        /* Keep as 90% for responsiveness on smaller screens */
+        padding: 30px;
+    }
+
+    .stats-grid {
+        /* On small screens, stack items in a a single column */
+        grid-template-columns: 1fr;
+    }
+
+    .shuffle-control-row {
+        flex-direction: column; /* Stack vertically on small screens */
+        align-items: center; /* Center items when stacked */
+    }
+
+    .shuffle-id-multiselect {
+        width: 100%; /* Make select full width when stacked */
+        max-width: unset; /* Remove max-width restriction for full width */
+    }
+
+    .view-order-btn {
+        width: 100%; /* Make button full width when stacked */
+        margin-top: 10px; /* Add space above button when stacked */
+    }
 }

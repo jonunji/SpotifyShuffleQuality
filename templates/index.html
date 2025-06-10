@@ -10,6 +10,15 @@
 </head>
 
 <body>
+    {% if logged_in %}
+    <div id="context-sidebar">
+        <h2>Contexts</h2>
+        <ul class="context-list" id="context-list-container">
+        </ul>
+    </div>
+    <div class="resizer" id="sidebar-resizer"></div>
+    </div>
+
     <div id="instructionModal" class="modal">
         <div class="modal-content">
             <span class="close-button">&times;</span>
@@ -41,6 +50,7 @@
         </div>
     </div>
 
+    {% endif %}
 
     <div class="main-wrapper">
         <h1>Spotify Shuffle Analyzer</h1>
@@ -53,7 +63,7 @@
             {% endif %}
         </div>
 
-        {% if logged_in %}
+        {% if logged_in %}        
         <div id="status-container" class="status status-inactive">
             <p id="status-text">
                 Queue tracking is <strong>inactive</strong>. Click the button below to start tracking.
@@ -167,6 +177,7 @@
         const contextName = document.getElementById('context-name');
         const contextOwnerTotal = document.getElementById('context-owner-total');
         const noContextMessage = document.getElementById('no-context-message');
+        const contextList = document.getElementById('context-list-container');
 
         // All patterns list
         const allPatternsList = document.getElementById('all-patterns-list');
@@ -188,6 +199,39 @@
         const prevPageBtn = document.getElementById('prev-page-btn');
         const nextPageBtn = document.getElementById('next-page-btn');
         const pageInfo = document.getElementById('page-info');
+
+        // Sidebar resize elements
+        const sidebar = document.getElementById('context-sidebar');
+        const resizer = document.getElementById('sidebar-resizer');
+
+        let isResizing = false;
+
+        resizer.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+            document.body.style.cursor = 'ew-resize';
+            sidebar.style.userSelect = 'none';
+            sidebar.style.pointerEvents = 'none';
+        });
+
+        function handleMouseMove(e) {
+            if (!isResizing) return;
+            let newWidth = e.clientX - sidebar.getBoundingClientRect().left;
+            const minScreenWidth = window.innerWidth * 0.075;
+            const maxScreenWidth = window.innerWidth * 0.25;
+
+            sidebar.style.width = `${Math.min(Math.max(newWidth, minScreenWidth), maxScreenWidth)}px`;
+        }
+
+        function handleMouseUp() {
+            isResizing = false;
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            document.body.style.cursor = 'default';
+            sidebar.style.userSelect = 'auto';
+            sidebar.style.pointerEvents = 'auto';
+        }
 
         function updatePaginationControls(resetControls = false) {
             if (isTracking) {
@@ -230,6 +274,47 @@
             }
         }
 
+        function renderContexts(contexts) {
+            contextList.innerHTML = ''; // Clear existing content
+            if (contexts && contexts.length > 0) {
+
+                contexts.forEach(context => {
+                    const contextItem = document.createElement('li');
+                    contextItem.classList.add('context-item'); // Add a class for styling
+                    contextItem.dataset.contextInfo = JSON.stringify(context); // Store the ID on the element
+
+                    const imageUrl = context.image_url || ''; // Use image_url from the context object directly
+                    const contextType = context.type ? context.type.charAt(0).toUpperCase() + context.type.slice(1) : 'Unknown Type';
+                    const contextOwner = context.owner_name ? context.owner_name : ""
+
+                    contextItem.innerHTML = `
+                        <div class="context-thumbnail">
+                            ${imageUrl ? `<img src="${imageUrl}" alt="${context.name} cover">` : '<div class="placeholder-image"></div>'}
+                        </div>
+                        <div class="context-details">
+                            <div class="context-name">${context.name}</div>
+                            <div class="context-sub-info">
+                                ${contextType} ${contextOwner ? '• ' + contextOwner : ''}
+                            </div>
+                        </div>
+                    `;
+                    contextList.appendChild(contextItem);
+                });
+
+                // Attach event listeners to the newly rendered items
+                contextList.querySelectorAll('.context-item').forEach(item => {
+                    item.addEventListener('click', (event) => {
+                        if (isTracking) return;
+
+                        const clickedContext = JSON.parse(event.currentTarget.dataset.contextInfo); 
+
+                        fetchQueueData(clickedContext.cid);
+                        updateContextInfoDisplay(clickedContext)
+                    });
+                });
+            }
+        }
+
         function renderTracks(tracks) {
             trackListContainer.innerHTML = '';
             if (tracks && tracks.length > 0) {
@@ -267,6 +352,9 @@
                 noTracksMessage.style.display = 'block';
                 noTracksMessage.querySelector('p').textContent = "No track data collected yet. Make sure tracking is enabled and you're using Spotify.";
             }
+        }
+
+        async function handleContextClick(event) {
         }
 
         async function handleTrackClick(event) {
@@ -466,7 +554,7 @@
                         <select class="shuffle-id-multiselect" id="shuffleMultiSelect-${stats.id}" multiple size="4">
                             ${shuffleSelectOptions}
                         </select>
-                        <button class="view-order-btn" disabled style="height: fit-content;">View Shuffle Order</button>
+                        <button class="view-order-btn" disabled>View Shuffle Order</button>
                     </div>
             `;
 
@@ -657,12 +745,17 @@
             }
         }
 
-        async function fetchQueueData() {
+        async function fetchQueueData(contextID = null) {
             try {
                 if (!isTracking) { // Only fetch if not tracking and not in an active tracking cycle
                     const offset = currentPage * tracksPerPage;
                     const limit = tracksPerPage;
-                    const url = `/queue_data?offset=${offset}&limit=${limit}&search=${encodeURIComponent(currentSearchQuery)}`;
+                    let url = `/queue_data?offset=${offset}&limit=${limit}&search=${encodeURIComponent(currentSearchQuery)}`;
+
+                    // add context_id if it's provided
+                    if (contextID) {
+                        url += `&context_id=${encodeURIComponent(contextID)}`;
+                    }
 
                     const response = await fetch(url);
                     data = await response.json();
@@ -710,6 +803,7 @@
                 updateAllPatternsList(data.tracks_with_patterns);
                 updatePaginationControls()
 
+
                 // Update the playback info if we have valid data while updating the queue
                 // Otherwise, it'll be updated whenever the user starts tracking
                 if (data.currently_playing) {
@@ -751,7 +845,7 @@
                         dropdown.closest('.track-item').classList.remove('active');
                         dropdown.innerHTML = '';
                     });
-                    
+
                     fetchQueueData();
                     updatePaginationControls(true);
                 } else {
@@ -760,6 +854,8 @@
                     statusText.innerHTML = `Error starting tracking: <strong>${data.error}</strong>`;
                     statusContainer.className = 'status status-error';
                 }
+
+                renderContexts(data.all_contexts)
             } catch (error) {
                 console.error('Error starting tracking:', error);
                 isTracking = false;
@@ -773,7 +869,7 @@
         async function stopTracking(errorMessage = "") {
             isTracking = false;
             isInitializing = false;
-            
+
             try {
                 const response = await fetch('/toggle', { method: 'POST' });
                 const data = await response.json();
@@ -851,7 +947,7 @@
         });
 
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             isTracking = false
             isInitializing = false
             updateToggleButtonAndStatus()
@@ -869,6 +965,17 @@
         updateQueueAndOverallStats(initialQueueData);
         renderTracks(initialQueueData.queue);
         updatePaginationControls(); // Initialize pagination button states
+
+        try {
+            const response = await fetch(`/get_all_contexts`);
+            const data = await response.json();
+            renderContexts(data);
+        } catch (error) {
+            console.error('Error fetching all contexts on startup:', error);
+            // Optionally render an error message in the sidebar if contexts can't be loaded
+            const contextListContainer = document.getElementById('context-list-container');
+            contextListContainer.innerHTML = '<li id="no-contexts-message"><p>Error loading contexts.</p></li>';
+        }
 
         const hasSeenInstructions = sessionStorage.getItem('hasSeenInstructions');
         if (!hasSeenInstructions) {
@@ -898,7 +1005,7 @@
                 instructionModal.style.display = 'block';
             });
         }
-
+        
         closeShuffleOrderModal.addEventListener('click', () => {
             shuffleOrderModal.style.display = 'none';
         });
